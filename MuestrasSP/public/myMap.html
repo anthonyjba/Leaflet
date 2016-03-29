@@ -3,12 +3,13 @@
 <head>
     <style>
         div {
-            width: 300px;
-            height: 300px;
+            width: 600px;
+            height: 400px;
             border: 1px dotted black;
         }
     </style>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <script type="text/javascript" src="js/GeoJSONUtils.js"></script>
     <script>
 $(document).ready(function(){      
   
@@ -20,14 +21,24 @@ $(document).ready(function(){
      
      map = new TestMap("map",data);
      
-  /*$.each(data.rows, function(key, val) {
-      console.log(key + ": "+val);
-  });*/
   });
+  
+  // Define default options
+  var defaults = {
+    zoom: 12,
+    center: [40.730610,-73.935242],
+    waterColor: '#b3d1ff',
+    landColor: '#fff',
+    markerColor: '#333',
+    markerSize: 5
+  };
+  
+  
+  this.options = defaults;
       
   var TestMap = function(el,source) {
     this.el = document.getElementById(el);;
-    this.options = { geojson : source };
+    this.options = $.extend({ geojson : source }, defaults);
     this.initialize.apply(this);
   }
 
@@ -49,7 +60,7 @@ $(document).ready(function(){
     this.el.appendChild(this.map);
 
     // Draw the map
-    //this.draw();
+    this.draw();
 
     },
     createMap: function(width, height) {
@@ -60,6 +71,60 @@ $(document).ready(function(){
     map.style.top = 0;
     map.style.left = 0;
     return map;
+    },
+
+    getTile: function () {
+      return new Smallworld.Tile(arguments);
+    },
+
+    resize: function () {
+      this.map.width = this.width;
+      this.map.height = this.height;
+    },
+
+    draw: function () {
+
+      var centerX, centerY, tilesBefore, tilesAfter, tileCount;
+
+      // Draw the water first
+      this.context.fillStyle = this.options.waterColor;
+      this.context.fillRect(0, 0, this.width, this.height);
+
+      // Calculate midpoint of the map. Then, based on the width of the
+      // map and the width of the tile, calculate how many additional 
+      // tiles must be drawn to the left and right of the center tile.
+      // This effectively “wraps” the map tiles.
+      centerX = Math.ceil((this.width / 2) - this.tile.center.x);
+      centerY = Math.ceil((this.height / 2) - this.tile.center.y);
+      tilesBefore = Math.ceil(centerX / this.tile.width);
+      tilesAfter = Math.ceil((this.width - (centerX + this.tile.width)) / this.tile.width);
+
+/*
+      // Draw tiles to the left of the center tile
+      for (tileCount = 1; tileCount <= tilesBefore; tileCount++) {
+        this.context.drawImage(this.tile.el, centerX - (this.tile.width * tileCount), centerY);
+      }
+
+      // Draw tiles to the right of the center tile
+      for (tileCount = 1; tileCount <= tilesAfter; tileCount++) {
+        this.context.drawImage(this.tile.el, centerX + (this.tile.width * tileCount), centerY);
+      }
+*/
+      // Draw the center tile
+      this.context.drawImage(this.tile.el, centerX, centerY);
+
+      // Add markers, if necessary
+      if (this.options.marker) {
+        if (this.options.marker === true) {
+          this.tile.addMarker(this.options.center);
+        } else {
+          this.tile.addMarker(this.options.marker);
+        }
+      } else if (this.options.markers) {
+        for (var i = 0; i < this.options.markers.length; i++) {
+          this.tile.addMarker(this.options.markers[i]);
+        }
+      }
     }
   }
 
@@ -76,31 +141,32 @@ $(document).ready(function(){
       this.geojson = this.options.geojson.features || this.options.geojson;
 
       // Determine scale of the tile based on the zoom level
-      /*this.scale = Math.pow(2, parseInt(this.options.zoom));
+      this.scale = Math.pow(2, parseInt(this.options.zoom));
 
       // Calculate the bounds of this tile
-      this.bounds = this.getBounds();
-
+      var bb = gjutils.getBounds(this.options.geojson);
+      this.bounds = { xMin : bb[0], yMin : bb[1], xMax : bb[2],  yMax : bb[3] };
+      
       // Set the dimensions of the tile
       this.width = Math.ceil(256 * this.scale);
       this.height = Math.ceil(this.width / 1.041975309);
 
       // Set the center coordinate of this tile
       this.center = this.coordinateToPoint(this.options.center[0], this.options.center[1]);
-
+      
       // Create the tile's element
       this.el = document.createElement('canvas');
       this.el.width = this.width;
       this.el.height = this.height;
       this.context = this.el.getContext('2d');
-*/
+
       // Draw the tile onto its element
       this.draw();
 
     },
     draw: function () {
         // Set the fill of the tile's shapes
-        //this.context.fillStyle = '#fff'; //this.options.landColor;
+        this.context.fillStyle = '#ccc'; //this.options.landColor;
 
         for (var i = 0, maxG = this.geojson.length; i < maxG; i++) {
             var coords = this.geojson[i].geometry.coordinates[0][0];
