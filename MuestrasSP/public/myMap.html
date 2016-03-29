@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<head>
+    <style>
+        div {
+            width: 300px;
+            height: 300px;
+            border: 1px dotted black;
+        }
+    </style>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <script>
+$(document).ready(function(){      
+  
+  var map;  
+  var sql_statement="select * from public.mnmappluto LIMIT 100";
+  //url : 'https://rambo-test.cartodb.com:443/api/v2/sql?format=GeoJSON&q='+sql_statement
+  $.getJSON("data_Cartodb/cartodb-query.geojson", function(data) {
+         
+     
+     map = new TestMap("map",data);
+     
+  /*$.each(data.rows, function(key, val) {
+      console.log(key + ": "+val);
+  });*/
+  });
+      
+  var TestMap = function(el,source) {
+    this.el = document.getElementById(el);;
+    this.options = { geojson : source };
+    this.initialize.apply(this);
+  }
+
+  TestMap.prototype = {
+  initialize : function() {
+
+    // Set the width and height based on our element
+    this.width = this.el.clientWidth;
+    this.height = this.el.clientHeight;
+    
+    // Generate a map tile that we'll use to create our map
+    this.tile = new TestMap.Tile(this.options);
+
+    // Create the map element
+    this.map = this.createMap(this.width, this.height);
+    this.context = this.map.getContext('2d');
+
+    // Append the map element
+    this.el.appendChild(this.map);
+
+    // Draw the map
+    //this.draw();
+
+    },
+    createMap: function(width, height) {
+    var map = document.createElement('canvas');
+    map.width = width;
+    map.height = height;
+    map.style.position = 'absolute';
+    map.style.top = 0;
+    map.style.left = 0;
+    return map;
+    }
+  }
+
+  TestMap.Tile = function (options) {
+    this.options = options;// extend(options || {}, defaults);
+    this.initialize.apply(this);
+  };
+
+  TestMap.Tile.prototype = {
+
+    initialize: function () {
+
+      // Keep a reference to the provided GeoJSON
+      this.geojson = this.options.geojson.features || this.options.geojson;
+
+      // Determine scale of the tile based on the zoom level
+      /*this.scale = Math.pow(2, parseInt(this.options.zoom));
+
+      // Calculate the bounds of this tile
+      this.bounds = this.getBounds();
+
+      // Set the dimensions of the tile
+      this.width = Math.ceil(256 * this.scale);
+      this.height = Math.ceil(this.width / 1.041975309);
+
+      // Set the center coordinate of this tile
+      this.center = this.coordinateToPoint(this.options.center[0], this.options.center[1]);
+
+      // Create the tile's element
+      this.el = document.createElement('canvas');
+      this.el.width = this.width;
+      this.el.height = this.height;
+      this.context = this.el.getContext('2d');
+*/
+      // Draw the tile onto its element
+      this.draw();
+
+    },
+    draw: function () {
+        // Set the fill of the tile's shapes
+        //this.context.fillStyle = '#fff'; //this.options.landColor;
+
+        for (var i = 0, maxG = this.geojson.length; i < maxG; i++) {
+            var coords = this.geojson[i].geometry.coordinates[0][0];
+
+            for (var j = 0, maxC = coords.length; j < maxC; j++) {
+                var point = this.coordinateToPoint(coords[j][1], coords[j][0]);
+
+                if (j === 0) {
+                    this.context.beginPath();
+                    this.context.moveTo(point.x, point.y);
+                } else {
+                    this.context.lineTo(point.x, point.y);
+                }
+            }
+
+            this.context.fill();
+        }
+    },
+
+    coordinateToPoint: function (latitude, longitude) {
+
+        var point = this.projectCoordinate(latitude, longitude);
+
+        var xScale = this.width / Math.abs(this.bounds.xMax - this.bounds.xMin);
+        var yScale = this.height / Math.abs(this.bounds.yMax - this.bounds.yMin);
+        var scale = xScale < yScale ? xScale : yScale;
+
+        return {
+            x: (point.x - this.bounds.xMin) * scale,
+            y: (this.bounds.yMax - point.y) * scale
+        };
+
+    },
+
+    projectCoordinate: function (latitude, longitude) {
+        var point = TestMap.Projection.mercator(latitude, longitude);
+        point.x = point.x * this.scale;
+        point.y = point.y * this.scale;
+        return point;
+    }
+  };
+ 
+ TestMap.Projection = {
+
+    RADIUS: 6378137,
+
+    MAX: 85.0511287798,
+
+    RADIANS: Math.PI / 180,
+
+    mercator: function (latitude, longitude) {
+      var point = {};
+
+      point.x = this.RADIUS * longitude * this.RADIANS;
+      point.y = Math.max(Math.min(this.MAX, latitude), -this.MAX) * this.RADIANS;
+      point.y = this.RADIUS * Math.log(Math.tan((Math.PI / 4) + (point.y / 2)));
+
+      return point;
+    }
+
+  };
+  
+});
+    </script>
+</head>
+
+<body>
+    <div id="map"></div>
+</body>
+
+</html>

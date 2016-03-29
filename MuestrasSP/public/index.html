@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Visualización de Datos de Muestras (D3, DC, leaflet)</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/dc.css">
+    <link rel="stylesheet" type="text/css" href="css/leaflet.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+</head>
+<body>  
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-xs-12">
+      <table class="table table-bordered table-striped" id="data-table">
+        <thead>
+          <tr class="header">
+            <th>ARH</th>
+            <th>PCATASTRAL1</th>
+            <th>PCATASTRAL2</th>
+            <th>VALORTRANS_MUESTRA</th>
+            <th>NUMERO_PROTOCOLO</th>
+            <th>FECHA_EFECTOS_MUESTRA</th>
+            <th>ID_ESTADO_MUESTRA</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript" src="js/d3.js"></script>
+<script type="text/javascript" src="js/crossfilter.js"></script>
+<script type="text/javascript" src="js/dc.js"></script>
+<script type="text/javascript" src="js/leaflet.js"></script>
+<script type="text/javascript">
+var demo2_geojson=false;
+var demo2=false;
+d3.json("data/muestras.geo.json", function(error, data) {
+  if (error) throw error;    
+  
+  demo2_geojson=data;
+  if (demo2)
+    drawChoropleth(demo2,demo2_geojson);
+
+});
+
+function drawChoropleth(data,geojson) {
+  dataP = [];
+    /*
+  var beerData = data.response.beers.items;
+  
+  data.forEach(function(d) {
+    var p = projection([+d.X, +d.Y]);
+    if (p) d.x = Math.round(p[0]), d.y = Math.round(p[1]);
+  });
+  
+  //if (demo2)
+    //drawChoropleth(demo2,demo2_geojson);
+    
+   // set crossfilter
+  var ndx = crossfilter(beerData);
+  var allDim = ndx.dimension(function(d) {return d;});
+  
+  dataTable
+    .dimension(allDim)
+    .group(function (d) { return 'dc.js insists on putting a row here so I remove it using JS'; })
+    .size(100)
+    .columns([
+      function (d) { return d.brewery.brewery_name; },
+      function (d) { return d.beer.beer_name; },
+      function (d) { return d.beer.beer_style; },
+      function (d) { return d.rating_score; },
+      function (d) { return d.beer.rating_score; },
+      function (d) { return d.beer.beer_abv; },
+      function (d) { return d.beer.beer_ibu; }
+    ])
+    //.sortBy(dc.pluck('rating_score'))
+    .order(d3.descending)
+    .on('renderlet', function (table) {
+      // each time table is rendered remove nasty extra row dc.js insists on adding
+      table.select('tr.dc-table-group').remove();
+      });
+    */  
+}
+
+</script>
+</body>
+</html>
