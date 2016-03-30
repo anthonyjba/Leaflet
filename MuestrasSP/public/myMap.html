@@ -4,12 +4,13 @@
     <style>
         div {
             width: 600px;
-            height: 400px;
+            height: 500px;
             border: 1px dotted black;
         }
     </style>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
     <script type="text/javascript" src="js/GeoJSONUtils.js"></script>
+    
     <script>
 $(document).ready(function(){      
   
@@ -18,28 +19,31 @@ $(document).ready(function(){
   //url : 'https://rambo-test.cartodb.com:443/api/v2/sql?format=GeoJSON&q='+sql_statement
   $.getJSON("data_Cartodb/cartodb-query.geojson", function(data) {
          
-     
+  //$.getJSON("data/world.json", function(data) {     
      map = new TestMap("map",data);
      
   });
   
+  
   // Define default options
   var defaults = {
-    zoom: 12,
+    zoom: 6,
     center: [40.730610,-73.935242],
     waterColor: '#b3d1ff',
     landColor: '#fff',
+    marker: [40.730610,-73.935242],
+	  markerSize: 8,
     markerColor: '#333',
-    markerSize: 5
   };
   
-  
+    
   this.options = defaults;
       
   var TestMap = function(el,source) {
     this.el = document.getElementById(el);;
     this.options = $.extend({ geojson : source }, defaults);
     this.initialize.apply(this);
+    //this.draw();
   }
 
   TestMap.prototype = {
@@ -99,7 +103,7 @@ $(document).ready(function(){
       tilesBefore = Math.ceil(centerX / this.tile.width);
       tilesAfter = Math.ceil((this.width - (centerX + this.tile.width)) / this.tile.width);
 
-/*
+
       // Draw tiles to the left of the center tile
       for (tileCount = 1; tileCount <= tilesBefore; tileCount++) {
         this.context.drawImage(this.tile.el, centerX - (this.tile.width * tileCount), centerY);
@@ -109,7 +113,7 @@ $(document).ready(function(){
       for (tileCount = 1; tileCount <= tilesAfter; tileCount++) {
         this.context.drawImage(this.tile.el, centerX + (this.tile.width * tileCount), centerY);
       }
-*/
+
       // Draw the center tile
       this.context.drawImage(this.tile.el, centerX, centerY);
 
@@ -145,7 +149,11 @@ $(document).ready(function(){
 
       // Calculate the bounds of this tile
       var bb = gjutils.getBounds(this.options.geojson);
-      this.bounds = { xMin : bb[0], yMin : bb[1], xMax : bb[2],  yMax : bb[3] };
+      var pSW = this.projectCoordinate(bb[1], bb[0]);
+      var pNE = this.projectCoordinate(bb[3], bb[2]);
+      this.bounds = { xMin : pSW.x, xMax : pNE.x,  yMin : pSW.y, yMax : pNE.y };
+      //this.bounds = { xMin: -1282400533.9385116, xMax: 1282400533.9385116, yMin: -1282400533.937967, yMax: 1170923354.2287464 };
+      console.log(this.bounds);
       
       // Set the dimensions of the tile
       this.width = Math.ceil(256 * this.scale);
@@ -166,10 +174,12 @@ $(document).ready(function(){
     },
     draw: function () {
         // Set the fill of the tile's shapes
-        this.context.fillStyle = '#ccc'; //this.options.landColor;
-
+        this.context.fillStyle = this.options.landColor;
+        this.context.strokeStyle = "#bada55"
+        
         for (var i = 0, maxG = this.geojson.length; i < maxG; i++) {
-            var coords = this.geojson[i].geometry.coordinates[0][0];
+            //var coords = this.geojson[i].geometry.coordinates[0][0]; //Multipolygon
+            var coords = this.geojson[i].geometry.coordinates[0]; //polygon
 
             for (var j = 0, maxC = coords.length; j < maxC; j++) {
                 var point = this.coordinateToPoint(coords[j][1], coords[j][0]);
@@ -206,6 +216,19 @@ $(document).ready(function(){
         point.x = point.x * this.scale;
         point.y = point.y * this.scale;
         return point;
+    },
+
+    addMarker: function (point, options) {
+  
+      options = options || {};
+
+      var center = this.coordinateToPoint(point[0], point[1]);
+        
+      this.context.beginPath();
+      this.context.arc(center.x, center.y, this.options.markerSize, 0, 2 * Math.PI, false);
+      this.context.fillStyle = this.options.markerColor;
+      this.context.fill();
+
     }
   };
  
