@@ -3,8 +3,8 @@
 <head>
     <style>
         div {
-            width: 600px;
-            height: 500px;
+            width: 1280px;
+            height: 1280px;
             border: 1px dotted black;
         }
     </style>
@@ -15,7 +15,7 @@
 $(document).ready(function(){      
   
   var map;  
-  var sql_statement="select * from public.mnmappluto LIMIT 100";
+  //var sql_statement="select * from public.mnmappluto LIMIT 100";
   //url : 'https://rambo-test.cartodb.com:443/api/v2/sql?format=GeoJSON&q='+sql_statement
   $.getJSON("data_Cartodb/cartodb-query.geojson", function(data) {
          
@@ -27,11 +27,12 @@ $(document).ready(function(){
   
   // Define default options
   var defaults = {
-    zoom: 6,
-    center: [40.730610,-73.935242],
+    zoom: 13,
+    //center: [40.78717,-73.96406],
+    center: [40.7229325077763,-74.001176973765],
     waterColor: '#b3d1ff',
     landColor: '#fff',
-    marker: [40.730610,-73.935242],
+    marker: [40.78717,-73.96406],
 	  markerSize: 8,
     markerColor: '#333',
   };
@@ -146,12 +147,14 @@ $(document).ready(function(){
 
       // Determine scale of the tile based on the zoom level
       this.scale = Math.pow(2, parseInt(this.options.zoom));
+      console.log(this.scale);
 
       // Calculate the bounds of this tile
       var bb = gjutils.getBounds(this.options.geojson);
       var pSW = this.projectCoordinate(bb[1], bb[0]);
       var pNE = this.projectCoordinate(bb[3], bb[2]);
-      this.bounds = { xMin : pSW.x, xMax : pNE.x,  yMin : pSW.y, yMax : pNE.y };
+      //this.bounds = { xMin : pSW.x, xMax : pNE.x,  yMin : pSW.y, yMax : pNE.y };
+      this.bounds = { xMin:-8244805.6358298715, xMax: 4967626.031161129, yMin: -8220345.786778616, yMax: 4992085.880212385 };
       //this.bounds = { xMin: -1282400533.9385116, xMax: 1282400533.9385116, yMin: -1282400533.937967, yMax: 1170923354.2287464 };
       console.log(this.bounds);
       
