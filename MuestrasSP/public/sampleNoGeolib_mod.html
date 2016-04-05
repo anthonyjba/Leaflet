@@ -33,7 +33,7 @@
 		var width = 1280,
 			height = 1280,
             margin = 0,
-			zoom = 13,
+			zoom = 9,
 			panX = 0,
 			panY = 0,
             
@@ -43,8 +43,8 @@
 
 
 		// private variables	
-		var min = [10000, 10000],
-			max = [-10000, -100000],
+		var min = [20037508, 20037508],
+			max = [-20037508, -20037508],
 			geometries  = [],
 			drawing = false,
 			canvas,
@@ -149,11 +149,11 @@
 		}
 
 		function getScale() {
-          return Math.pow(2, parseInt(zoom));
-          /*  var mapWidth = width - margin * 2;
+          //return Math.pow(2, parseInt(zoom));
+            var mapWidth = width - margin * 2;
 			var mapHeight = height - margin * 2;
 
-			return Math.min(mapWidth / max[0], mapHeight / max[1]) * zoom;*/
+			return Math.min(mapWidth / max[0], mapHeight / max[1]) * zoom;
 		}
 
 /*
