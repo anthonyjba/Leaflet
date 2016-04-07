@@ -141,7 +141,7 @@
 		}
 
 		function setMax(point) {
-			point[0] = (point[0] * -1) - (min[0]*-1)*-1;
+			point[0] -= min[0];
 			point[1] -= min[1];
 			
 			max[0] = Math.max(max[0], point[0]);
@@ -153,7 +153,7 @@
             var mapWidth = width - margin * 2;
 			var mapHeight = height - margin * 2;
 
-			return Math.min(mapWidth / Math.abs(max[0]), mapHeight / Math.abs(max[1])) * zoom;
+			return Math.min(mapWidth / max[0], mapHeight / max[1]) * zoom;
 		}
 
 /*
@@ -212,8 +212,8 @@
 				for (var j = 0, ll = points.length; j < ll; j++) {
 					point = points[j];
 
-					pointx = (Math.abs(center[0]) - (point[0] * scale));
-					pointy = (Math.abs(center[1]) - (point[1] * scale));
+					pointx = (center[0] + (point[0] * scale));
+					pointy = (center[1] + (point[1] * scale));
 
 					polygons.push([pointx, pointy]);
 				}
@@ -287,7 +287,7 @@
 		function scaleTo(scale) {			
 			zoom += scale;
 
-			if (zoom < 0){ zoom = 0; return false; }
+			if (zoom < 9){ zoom = 9; return false; }
 
 			if (!drawing){
 				ctx.clearRect(0, 0, width, height);

@@ -149,6 +149,7 @@
 		}
 
 		function getScale() {
+            console.log(Math.min(width / max[0], height / max[1]) * zoom)
           return Math.pow(2, parseInt(zoom));
 		}
 
@@ -180,12 +181,13 @@
 			drawing = true;
 
 			var scale = getScale();	
+            console.log(scale);
 
 			// center image
 			var center = getCenter(scale);
             
-            var llc = fromPointToLatLng({ x : ((scale * max[0])/2), y : ((scale * max[1])/2)});
-            console.log(ll);
+            //var llc = fromPointToLatLng({ x : ((scale * max[0])/2), y : ((scale * max[1])/2)});
+            console.log(center);
             
             ctx.beginPath();
 			ctx.arc(center[0]+((scale * max[0])/2), center[1] + ((scale * max[1])/2), 7, 0, 2 * Math.PI, false);
