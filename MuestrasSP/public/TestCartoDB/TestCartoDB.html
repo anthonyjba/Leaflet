@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Test CartoDB - Anthony</title>
+	<style type="text/css">
+
+		body, canvas {
+			background-color: 'rgba(255,255,255,0.1)';            
+		}
+        canvas {
+            position:absolute;
+            left:0px;
+            top:0px;
+            border: 1px solid black;            
+        }
+        img{
+            position:absolute;
+            left:0px;
+            top:0px;
+        }
+        div{
+            position:absolute;
+            left:1050px;
+            top:20px;
+        }
+	</style>
+</head>
+<body>
+    <img id="imgMap" />     
+    <div>
+        <strong>Bounding Box:</strong><p class="bboxValue"></p>
+        <strong>Zoom Level:</strong><p class="zoomValue"></p>        
+        <input type="checkbox" id="chkGridTile" checked>hide/show Grid Tile</input></br>
+        <input type="checkbox" id="chkBaseMap" checked>hide/show Base Map</input>
+    </div>
+    <canvas id="canvasGrid" />
+	<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+ 	<script type="text/javascript">
+ 		
+ 	(function($) {
+
+
+		// parameters
+		var width = 1024,
+			height = 1024,
+			zoom = 13,
+			flagCenter = true;
+            flagBaseMap = true;
+            urlExtent = 'https://rambo-test.cartodb.com/api/v2/sql?q=select ST_Extent(the_geom) as bextent from public.mnmappluto'
+            ;
+                        
+		// private variables	
+		var geometries  = [],
+			drawing = false,
+			canvas,
+			ctx,
+            min = [],
+            max = []
+			startCoords = [0, 0],
+			last = [0,0],
+			dragged = false,
+			focus,
+            scale = 0           
+			panX = 0,
+			panY = 0,
+            center = []
+            centLon = 0,
+            centLat = 0
+            ;
+
+            // Canvas Grid tiles
+            var grid = document.getElementById('canvasGrid');
+            grid.width = width;
+            grid.height = height;
+            var ctxg = grid.getContext('2d');
+            drawGridTile();
+            
+                        
+            // Canvas render GeoJson
+            canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx = canvas.getContext('2d');
+            ctx.strokeStyle = '#003300';
+            ctx.stroke();
+            document.body.appendChild(canvas);
+
+            canvas.addEventListener('DOMMouseScroll',handleScroll,false);
+            canvas.addEventListener('mousewheel',handleScroll,false);
+            canvas.addEventListener('mousedown', handleMouseDown, false);
+            canvas.addEventListener('mousemove', handleMouseMove, false);
+            canvas.addEventListener('mouseup', handleMouseUp, false);
+
+            
+            render();
+            
+        
+		function extractGeometries(geojsons) {
+			var geojson, coords, coord, point, points, i, j, l, ll;
+			
+			for (i = 0, l = geojsons.rows.length; i < l; i++) {
+                geojson = JSON.parse(geojsons.rows[i].features);
+				coords = geojson.coordinates[0][0];
+
+				points = [];
+
+				for (j = 0, ll = coords.length; j < ll; j++) {
+					coord = coords[j];
+					
+					point = fromLatLngToPoint(coord);  // convert longitude, latitude to point GIS
+                    point = [(point[0] - min[0]), (point[1] - min[1])] 
+
+					points.push(point);
+				}
+
+				if (points.length) {
+					geometries.push(points);
+				}
+			} 
+		}
+
+       function setMinBBox(sw) {
+            var swPx = fromLatLngToPoint(sw);
+			min[0] = swPx[0];
+			min[1] = swPx[1];
+		}
+        
+        function setMaxBBox(nw) {
+            var maxLonPx = fromLatLngToPoint(nw);
+			max[0] = maxLonPx[0] - min[0];
+			max[1] = maxLonPx[1] - min[1];
+		}
+
+		function getScale() {
+          scale = Math.pow(2, parseInt(zoom));         
+		}
+
+		function getCenter(scale) {
+
+			var center = [
+				(width - (scale * max[0])) / 2,
+				(height - (scale * max[1])) / 2
+			];
+
+			center[0] += panX;
+			center[1] += panY;
+
+  			return center;
+		}
+
+		function drawPolygons() {
+			            
+			drawing = true;
+
+			center = getCenter(scale);
+            
+			var points, point, pointx, pointy, polygons;
+			
+			for (var i = 0, l = geometries.length; i < l; i++) { // draw each polygon
+				points = geometries[i];
+
+				polygons = [];
+
+				for (var j = 0, ll = points.length; j < ll; j++) {
+					point = points[j];
+
+					pointx = (center[0] + (point[0] * scale));
+					pointy = (center[1] + (point[1] * scale));
+
+					polygons.push([pointx, pointy]);
+				}
+
+				if (polygons.length) {
+					draw(polygons);
+				}
+			}
+
+			drawing = false;            
+            
+		}
+
+		function draw(polygons) {
+			
+			ctx.beginPath();
+
+			var data, i, l;
+
+			data = polygons[0];
+			ctx.moveTo(data[0], data[1]);
+
+			for (i = 1, l = polygons.length; i < l; i++) {
+				data = polygons[i];
+
+				ctx.lineTo(data[0], data[1]);					
+			}
+
+			ctx.stroke();
+			ctx.closePath();
+			
+		}
+        				
+		function render() {
+
+			ctx.clearRect(0, 0, width, height);
+
+			$.getJSON(urlExtent).done(function(data) {
+                
+                var bbox = data.rows[0].bextent;
+                var tiles = getTiles(bbox)
+                
+                //HTML5 Web Workers
+                var worker = new Worker('worker.js');
+                var count=0;
+
+                worker.addEventListener('message', function(e) {
+                    count++;                    
+                    var geojsons = JSON.parse(e.data)
+                    extractGeometries(geojsons);                    
+                
+				    drawPolygons();
+                    
+                    if(count == 4){
+                        worker.terminate(); // Terminate a worker
+                        drawGridTile();                        
+                    }
+                    
+                }, false);
+                
+                for(i=0, l=tiles.length; i<l; i++){
+                     var url = 'https://rambo-test.cartodb.com/api/v2/sql?q=SELECT st_asgeojson(the_geom) as features from public.mnmappluto WHERE the_geom %26%26 ST_SetSRID(ST_MakeBox2D(';          
+                     url += 'ST_Point('+ tiles[i].xMin +', '+ tiles[i].yMin +'), ST_Point('+ tiles[i].xMax +', '+ tiles[i].yMax +')), 4326)'; 
+
+                    worker.postMessage(url);                        
+                }
+                                
+			}, this);
+
+		}
+        
+        function getTiles(bbox){
+
+            var tilesArray = [];
+            var regExp = /\(([^)]+)\)/;
+            var matches = regExp.exec(bbox);            
+            var regMinMax = /^(\-?\d+(\.\d+)?)\s*(\-?\d+(\.\d+)?),(\-?\d+(\.\d+)?)\s*(\-?\d+(\.\d+)?)$/;
+            var matchMinMax = regMinMax.exec(matches[1]);
+            
+            var minLon = parseFloat(matchMinMax[1]), 
+                maxLon = parseFloat(matchMinMax[5]), 
+                minLat = parseFloat(matchMinMax[3]),
+                maxLat = parseFloat(matchMinMax[7]);
+                centLon = (minLon + maxLon)/2.0;
+                centLat = (minLat + maxLat)/2.0;
+
+            if(centLon -180 > 0)
+                centLon -= 360;
+            else if (centLon + 180 < 0)
+                centLon += 360;
+            
+            tilesArray.push({xMin : minLon, xMax : centLon, yMin : minLat, yMax : centLat});
+            tilesArray.push({xMin : centLon, xMax : maxLon, yMin : minLat, yMax : centLat});
+            tilesArray.push({xMin : minLon, xMax : centLon, yMin : centLat, yMax : maxLat});
+            tilesArray.push({xMin : centLon, xMax : maxLon, yMin : centLat, yMax : maxLat});
+
+            setMinBBox([minLon, minLat])
+            setMaxBBox([maxLon, maxLat])
+            
+            $('.bboxValue').html(minLon +', '+ minLat +'<br>' + maxLon + ', '+ maxLat);
+            $('.centerValue').html(centLon +', '+ centLat);
+            
+            getScale();
+            updateStaticMap()
+            
+            return tilesArray
+        }
+        
+        function updateStaticMap(){
+            var urlImgMap = 'https://api.mapbox.com/v4/mapbox.light/'+
+                centLon + ',' + centLat + ',' + zoom + '/' + width + 'x' + height +
+                '.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw';
+
+            $('.zoomValue').text(zoom);
+
+            if (zoom < 20 && flagBaseMap)
+                document.getElementById("imgMap").src = urlImgMap; 
+        }
+
+        function drawGridTile(){            
+            ctxg.moveTo(width/2 +0.5, 0);
+            ctxg.lineTo(width/2 + 0.5, height)
+            ctxg.moveTo(0.5, height/2);
+            ctxg.lineTo(width, height/2 + 0.5)
+            ctxg.strokeStyle = 'rgba(0, 0, 0, 0.2);'
+            ctxg.stroke();
+        }        
+        
+        function fromLatLngToPoint(latLng){
+            var siny =  Math.min(Math.max(Math.sin(latLng[1]* (Math.PI / 180)),
+                                   -.9999),
+                          .9999);
+            return [128 + latLng[0] * (256/360),
+                    128 + 0.5 * Math.log((1 + siny) / (1 - siny)) * -(256 / (2 * Math.PI))];
+        }
+
+		function handleScroll(ev){
+			ev.preventDefault();
+			ev.stopPropagation();
+
+			var delta = ev.wheelDelta ? ev.wheelDelta / 120 : ev.detail ? -ev.detail : 0;
+
+			if (delta){
+				focus = [ev.offsetX, ev.offsetY];
+
+				scaleTo(delta);
+			}
+		}
+
+		function scaleTo(scale) {			
+			zoom += scale;
+
+			if (zoom < 1){ zoom = 1; return false; }
+
+			if (!drawing){
+                updateStaticMap();
+                getScale();
+				ctx.clearRect(0, 0, width, height);
+				drawPolygons();
+			}
+		}
+
+		function handleMouseDown(ev) {
+			dragged = true;
+
+			startCoords = [
+				ev.offsetX - last[0],
+				ev.offsetY - last[1]
+			];
+		}
+
+		function handleMouseUp(ev) {
+			dragged = false;
+			
+			last = [
+				ev.offsetX - startCoords[0],
+				ev.offsetY - startCoords[1]
+			];
+		}
+		
+		function handleMouseMove(ev) {
+			if (!dragged) return;
+
+			panX = ev.offsetX - startCoords[0];
+			panY = ev.offsetY - startCoords[1];
+
+			if (!drawing) {
+				ctx.clearRect(0, 0, width, height);
+				drawPolygons();
+			}
+		}
+
+        //Controls Map Events
+        $('#chkGridTile').click(function() {
+            if (!$(this).is(':checked')) {
+                ctxg.clearRect(0, 0, width, height);
+            }
+            else{
+                drawGridTile();
+            }
+        });
+        
+        $('#chkCenterPt').click(function() {
+            if (!$(this).is(':checked')){
+                flagCenter = false;                    
+                }
+            else{
+                flagCenter = true;                    
+            }
+            
+            ctx.clearRect(0, 0, width, height);
+            drawPolygons();                
+        });
+        
+        $('#chkBaseMap').click(function() {
+            if (!$(this).is(':checked')) {
+                flagBaseMap = false;
+                grid.style.backgroundColor = ' #f3f5f6';         
+            }
+            else{
+                flagBaseMap = true;
+                grid.style.backgroundColor = 'rgba(255,255,255,0.1)';  
+                updateStaticMap();
+            }
+        });
+
+	})(jQuery);
+
+
+ 	</script>
+</body>
+</html>

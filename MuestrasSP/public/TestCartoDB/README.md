@@ -1,0 +1,31 @@
+# Test CartoDB
+  html to render GeoJson From CartoDB using only JQuery, SQL API CartoDB and Web Worker.
+
+# step to load data from CartoDB
+  
+  . Get Bounding Box with the method Extent with the next url:
+
+  'https://rambo-test.cartodb.com/api/v2/sql?q=select ST_Extent(the_geom) as bextent from public.mnmappluto'
+
+  . Calculate the BoundingBox to divide in 4 tiles. 
+  
+  . Get data geojson in 4 times using web worker (file worker.js).
+  
+  . Sample of url to worker.postMessage(url) :
+  
+  'https://rambo-test.cartodb.com/api/v2/sql?q=SELECT st_asgeojson(the_geom) as features from public.mnmappluto 
+  WHERE the_geom %26%26 ST_SetSRID(ST_MakeBox2D(
+      ST_Point('+ tiles[1].xMin +', '+ tiles[1].yMin +'), 
+      ST_Point('+ tiles[1].xMax +', '+ tiles[1].yMax +')), 4326)'
+  
+# render GeoJson
+  . Calculate the Center latlong by the Bounding Box.
+  . Calculate the Scale with the zoom default.
+  . Convert longitude, latitude to point GIS
+  . Loop and draw the polygons over the Canvas.
+  
+# Optional step
+  . Zooming the map with scroll mouse (minimum zoom level: 1).
+  . Get Static Map to show/hide under the render Geojson.
+  . Show/hide a grid Tiles over the map.
+  

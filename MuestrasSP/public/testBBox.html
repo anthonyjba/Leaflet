@@ -21,122 +21,8 @@
     
     <script type="text/javascript">
 $(document).ready(function(){      
-
-function Matrix() {
-	this.reset();
-}
-Matrix.prototype.reset = function() {
-	this.m = [1, 0, 0, 1, 0, 0];
-  return this;
-};
-Matrix.prototype.inverse = function() {
-	var inv = new Matrix();
-	inv.m = this.m.slice(0);
-	var d = 1 / (inv.m[0] * inv.m[3] - inv.m[1] * inv.m[2]),
-	    m0 = inv.m[3] * d,
-        m1 = -inv.m[1] * d,
-	    m2 = -inv.m[2] * d,
-	    m3 = inv.m[0] * d,
-	    m4 = d * (inv.m[2] * inv.m[5] - inv.m[3] * inv.m[4]),
-	    m5 = d * (inv.m[1] * inv.m[4] - inv.m[0] * inv.m[5]);
-	inv.m[0] = m0;
-	inv.m[1] = m1;
-	inv.m[2] = m2;
-	inv.m[3] = m3;
-	inv.m[4] = m4;
-	inv.m[5] = m5;
-	return inv;
-};
-Matrix.prototype.transformPoint = function(px, py) {
-        var x = px, y = py;
-        px = x * this.m[0] + y * this.m[2] + this.m[4];
-        py = x * this.m[1] + y * this.m[3] + this.m[5];
-        return [px, py];
-    };
-
-
-  var em = function(viewportSize,options) {
-    if(!viewportSize) return;
-    this.vpSize = viewportSize; 
-    this.opt = options || {};
-    this.projExt = this.opt.projExtent || {
-    left: -8242942.78646323,
-    right: -8227266.36685407,
-    bottom: 4965830.96399322,
-    top: 4994525.81884371
-  };
-    /*this.projExt = this.opt.projExtent || {
-      left: -20037508.342789244,
-      right: 20037508.342789244,
-      bottom: -20037508.342789244,
-      top: 20037508.342789244
-    };*/
-    this.tSize = this.opt.tileSize || 256;
-    this.maxRes = Math.min(
-      Math.abs(this.projExt.right - this.projExt.left)/this.tSize,
-      Math.abs(this.projExt.top - this.projExt.bottom)/this.tSize);
-    this.matrix = new Matrix();
-    this.tileMatrix = new Matrix();
-    //if(this.opt.view && this.opt.callback)
-    //  this.setView(this.opt.view,this.opt.callback,this.opt.scope);
-    
-    console.log(this.maxRes);
-  };
-
-  
-  
-  em.prototype.getCenter = function() {
-    var ctrBasePx = this.matrix.inverse()
-        .transformPoint(this.vpSize.width/2,this.vpSize.height/2);
-    return [
-        this.projExt.left + ctrBasePx[0]*this.maxRes,
-        this.projExt.top - ctrBasePx[1] * this.maxRes ];
-    };
-  
-  em.prototype.getZoom = function() {
-  return Math.log(this._getWebScale()) / Math.log(2);
-};
-em.prototype.getNearestZoom = function() {
-  return Math.round(this.getZoom());
-};
-em.prototype._getWebScale = function() {
-  var m = this.matrix.m;
-  return Math.sqrt(m[0] * m[0] + m[1] * m[1])
-};
-  em.prototype.getRotation = function() {
-  var m = this.matrix.m;
-  return Math.atan2(m[1],m[0]) * 180/Math.PI;
-};
-em.prototype.getView = function() {
-  return {
-    center: this.getCenter(),
-    zoom: this.getZoom(),
-    resolution: this.maxRes/this._getWebScale(),
-    rotation: this.getRotation()
-  };
-};
-em.prototype.getExtent = function() {
-  var inv = this.matrix.inverse();
-  return [
-    this._basePxToLongLat(inv.transformPoint(0,0)),
-    this._basePxToLongLat(inv.transformPoint(0,this.vpSize.height)),
-    this._basePxToLongLat(inv.transformPoint(
-      this.vpSize.width, 
-      this.vpSize.height)),
-    this._basePxToLongLat(inv.transformPoint(this.vpSize.width, 0))]
-};
-em.prototype._longLatToBasePx = function(longLat) {
-  return [
-    (longLat[0] - this.projExt.left)/this.maxRes,
-    (this.projExt.top - longLat[1])/this.maxRes];
-};
-em.prototype._basePxToLongLat = function(px) {
-  return [
-    this.projExt.left + px[0]*this.maxRes,
-    this.projExt.top - px[1]*this.maxRes];
-}  
-  
-  // parameters
+      
+    // parameters
     var url = 'data_Cartodb/cartodb-query-mercator-all.json',
         width = 1280,
         height = 1280,        
@@ -151,12 +37,11 @@ em.prototype._basePxToLongLat = function(px) {
         last = [0,0],
         drawing = false,
         dragged = false,
-        focus;
+        focus,
+        map;
         
-        var v = { width : width, height : height};
-        var map = new em(v,{});
-        var gv = map.getView();
-        var ge = map.getExtent();
+        
+        
 
     var canvas = document.createElement('canvas');
     canvas.width = width;
@@ -164,14 +49,14 @@ em.prototype._basePxToLongLat = function(px) {
 
 	ctx = canvas.getContext('2d');
 
-	  document.body.appendChild(canvas);
+	document.body.appendChild(canvas);
     canvas.addEventListener('DOMMouseScroll',handleScroll,false);
-		canvas.addEventListener('mousewheel',handleScroll,false);
-		canvas.addEventListener('mousedown', handleMouseDown, false);
-		canvas.addEventListener('mousemove', handleMouseMove, false);
-		canvas.addEventListener('mouseup', handleMouseUp, false);
+    canvas.addEventListener('mousewheel',handleScroll,false);
+    canvas.addEventListener('mousedown', handleMouseDown, false);
+    canvas.addEventListener('mousemove', handleMouseMove, false);
+    canvas.addEventListener('mouseup', handleMouseUp, false);
 
-  var startLoad = new Date(); 
+    var startLoad = new Date(); 
     $.getJSON(url).done(function(data) {
          console.log("Time of load geojson: " + new Date().setTime(new Date().getTime() - startLoad.getTime()) + " ms ");     
         
@@ -179,6 +64,27 @@ em.prototype._basePxToLongLat = function(px) {
         // Calculate the bounds of this tile
         bounds = getBoundingBox(data.rows);
         console.log(bounds);
+        
+        /** Object **/
+         var options = { 
+            size : {
+                width : width, 
+                height : height
+            },
+            projExtent : {
+                left: bounds.xMin,
+                right: bounds.xMax,
+                bottom: bounds.yMin,
+                top: bounds.yMax
+            }};
+        map = new em(options.size, options);
+        var gv = map.getView();
+        var ge = map.getExtent();
+        var ge = map._longLatToBasePx(gv.center);
+        console.log(map._getWebScale());
+        
+        
+         
         
         console.log("Time of parse data: " + new Date().setTime(new Date().getTime() - startParse.getTime()) + " ms ");
         
@@ -208,9 +114,10 @@ em.prototype._basePxToLongLat = function(px) {
             // Determine how much to scale our coordinates by
             xScale = width / Math.abs(bounds.xMax - bounds.xMin);
             yScale = height / Math.abs(bounds.yMax - bounds.yMin);
-            return (xScale < yScale ? xScale : yScale) * parseInt(zoom);
+            return (xScale < yScale ? xScale : yScale) * (parseInt(zoom));
           
-          //OK: (xScale < yScale ? xScale : yScale) * 1/(20037508.342789244 / (256 * Math.pow(2, parseInt(zoom))));
+          //OK: 
+          //return (xScale < yScale ? xScale : yScale) /(20037508.342789244 / (256 * Math.pow(2, parseInt(zoom))));
           
           //return Math.pow(2, parseInt(zoom));
           /*  var mapWidth = width - margin * 2;
@@ -264,8 +171,8 @@ em.prototype._basePxToLongLat = function(px) {
             // …and for each coordinate…
             for (var j = 0, ll = coords.length; j < ll; j++) {
 
-                longitude = coords[j].x;
-                latitude = coords[j].y;
+                longitude = coords[j][0];
+                latitude = coords[j][1];
 
                 // Scale the points of the coordinate
                 // to fit inside our bounding box
@@ -273,6 +180,11 @@ em.prototype._basePxToLongLat = function(px) {
                     x: center[0] + (longitude - bounds.xMin) * scale,
                     y: center[1] + (bounds.yMax - latitude) * scale
                 };
+                /*var pp = map._longLatToBasePx(coords[j]);
+                point = {
+                    x: panX + pp[0],
+                    y: panY + pp[1]
+                };*/
                 
                 polygons.push(point);
 
@@ -352,7 +264,7 @@ em.prototype._basePxToLongLat = function(px) {
                 bounds.yMin = bounds.yMin < latitude ? bounds.yMin : latitude;
                 bounds.yMax = bounds.yMax > latitude ? bounds.yMax : latitude;
                 
-                point = { x : longitude, y : latitude };
+                point = [ longitude, latitude ];
                 //point = mercator(longitude, latitude)
                 
                 points.push(point);
@@ -425,6 +337,115 @@ em.prototype._basePxToLongLat = function(px) {
 			}
 		}
     
+    
+    //************************************************************************************
+    function Matrix() {
+        this.reset();
+    }
+    Matrix.prototype.reset = function() {
+        this.m = [1, 0, 0, 1, 0, 0];
+    return this;
+    };
+    Matrix.prototype.inverse = function() {
+        var inv = new Matrix();
+        inv.m = this.m.slice(0);
+        var d = 1 / (inv.m[0] * inv.m[3] - inv.m[1] * inv.m[2]),
+            m0 = inv.m[3] * d,
+            m1 = -inv.m[1] * d,
+            m2 = -inv.m[2] * d,
+            m3 = inv.m[0] * d,
+            m4 = d * (inv.m[2] * inv.m[5] - inv.m[3] * inv.m[4]),
+            m5 = d * (inv.m[1] * inv.m[4] - inv.m[0] * inv.m[5]);
+        inv.m[0] = m0;
+        inv.m[1] = m1;
+        inv.m[2] = m2;
+        inv.m[3] = m3;
+        inv.m[4] = m4;
+        inv.m[5] = m5;
+        return inv;
+    };
+    Matrix.prototype.transformPoint = function(px, py) {
+        var x = px, y = py;
+        px = x * this.m[0] + y * this.m[2] + this.m[4];
+        py = x * this.m[1] + y * this.m[3] + this.m[5];
+        return [px, py];
+    };
+
+        //empty maps
+        var em = function(viewportSize,options) {
+            if(!viewportSize) return;
+            this.vpSize = viewportSize; 
+            this.opt = options || {};
+            this.projExt = this.opt.projExtent || {
+            left: -20037508.342789244,
+            right: 20037508.342789244,
+            bottom: -20037508.342789244,
+            top: 20037508.342789244
+            };
+            this.tSize = this.opt.tileSize || 256;
+            this.maxRes = Math.min(
+            Math.abs(this.projExt.right - this.projExt.left)/this.tSize,
+            Math.abs(this.projExt.top - this.projExt.bottom)/this.tSize);
+            this.matrix = new Matrix();
+            //this.tileMatrix = new Matrix();
+            //if(this.opt.view && this.opt.callback)
+            //  this.setView(this.opt.view,this.opt.callback,this.opt.scope);
+            
+            console.log(this.maxRes);
+        };
+
+  
+  
+        em.prototype.getCenter = function() {
+            var ctrBasePx = this.matrix.inverse()
+                .transformPoint(this.vpSize.width/2,this.vpSize.height/2);
+            return [
+                this.projExt.left + ctrBasePx[0]*this.maxRes,
+                this.projExt.top - ctrBasePx[1] * this.maxRes ];
+            };
+        
+        em.prototype.getZoom = function() {
+        return Math.log(this._getWebScale()) / Math.log(2);
+        };
+        em.prototype.getNearestZoom = function() {
+        return Math.round(this.getZoom());
+        };
+        em.prototype._getWebScale = function() {
+        var m = this.matrix.m;
+        return Math.sqrt(m[0] * m[0] + m[1] * m[1])
+        };
+        em.prototype.getRotation = function() {
+        var m = this.matrix.m;
+        return Math.atan2(m[1],m[0]) * 180/Math.PI;
+        };
+        em.prototype.getView = function() {
+        return {
+            center: this.getCenter(),
+            zoom: this.getZoom(),
+            resolution: this.maxRes/this._getWebScale(),
+            rotation: this.getRotation()
+        };
+        };
+        em.prototype.getExtent = function() {
+        var inv = this.matrix.inverse();
+        return [
+            this._basePxToLongLat(inv.transformPoint(0,0)),
+            this._basePxToLongLat(inv.transformPoint(0,this.vpSize.height)),
+            this._basePxToLongLat(inv.transformPoint(
+            this.vpSize.width, 
+            this.vpSize.height)),
+            this._basePxToLongLat(inv.transformPoint(this.vpSize.width, 0))]
+        };
+        em.prototype._longLatToBasePx = function(longLat) {
+        return [
+            (longLat[0] - this.projExt.left)/this.maxRes,
+            (this.projExt.top - longLat[1])/this.maxRes];
+        };
+        em.prototype._basePxToLongLat = function(px) {
+        return [
+            this.projExt.left + px[0]*this.maxRes,
+            this.projExt.top - px[1]*this.maxRes];
+        }
   
 });
     </script>
