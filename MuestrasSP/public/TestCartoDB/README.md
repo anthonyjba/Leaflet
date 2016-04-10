@@ -21,11 +21,11 @@
 ## Render GeoJson
   * Calculate the Center latlong by the Bounding Box.
   * Calculate the Scale with the zoom default.
-  * Convert longitude, latitude to point GIS
-  * Loop and draw the polygons over the Canvas.
+  * Convert each point (longitude, latitude) to point GIS
+  * Loop and draw each polygon over the Canvas.
   
 ## Optional Step
   * Zooming the map with scroll mouse (minimum zoom level: 1).
-  * Get Static Map to show/hide under the render Geojson.
-  * Show/hide a grid Tiles over the map.
+  * Get a static map to show/hide under the render Geojson.
+  * Show/hide a grid tiles over the map.
   
