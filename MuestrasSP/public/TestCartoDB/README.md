@@ -11,7 +11,7 @@
   
   * Get data geojson in 4 times using web worker (file worker.js).
   
-  ^* Sample of url to worker.postMessage(url) :
+  * Url sample in worker.postMessage(url) :
   
   https://rambo-test.cartodb.com/api/v2/sql?q=SELECT st_asgeojson(the_geom) as features from public.mnmappluto 
   WHERE the_geom %26%26 ST_SetSRID(ST_MakeBox2D(
@@ -19,10 +19,10 @@
       ST_Point('+ tiles[1].xMax +', '+ tiles[1].yMax +')), 4326)      
   
 ## Render GeoJson
-  . Calculate the Center latlong by the Bounding Box.
-  . Calculate the Scale with the zoom default.
-  . Convert longitude, latitude to point GIS
-  . Loop and draw the polygons over the Canvas.
+  * Calculate the Center latlong by the Bounding Box.
+  * Calculate the Scale with the zoom default.
+  * Convert longitude, latitude to point GIS
+  * Loop and draw the polygons over the Canvas.
   
 ## Optional Step
   * Zooming the map with scroll mouse (minimum zoom level: 1).
