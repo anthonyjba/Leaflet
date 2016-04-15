@@ -18,6 +18,32 @@
   <script src="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.js"></script>
   <script src="js/leaflet_canvas_layer.js"></script>
   <script>
+    var source = null,
+            arrayBase = [],
+            width = 800,
+            height = 500,
+            zoom = 15,
+            scale = 0,
+            indicador = null,
+            projection;
+    
+   d3.csv("data_Cartodb/parc_ind_46_AM.csv", function(error, source) {
+      if (error) throw error;  
+
+      var filtroPorIndicador = source.filter(function (d) {
+          return +d.PROVINCIA == objetoFiltradoInicial.PROVINCIA && d.CC == objetoFiltradoInicial.CC;
+      })
+      
+      indicador = objetoFiltradoInicial.INDICADOR.toUpperCase();
+
+      //arrayBase = filtroPorIndicador.map(mapeoArrayBase);
+      arrayBase = source.map(mapeoArrayBase);
+
+      console.log(arrayBase.length);
+
+    });
+    
+    
     var map = L.map('map').setView([39.451008,-0.3649525], 10);
     L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {
       maxZoom: 18,

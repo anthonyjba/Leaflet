@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Leaflet.Canvas example</title>
+  <!-- based on leaflet quick example: http://leafletjs.com/examples/quick-start-example.html -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.css" />
+  
+  <style> 
+    html, body, #map { padding: 0; margin: 0;}
+    #map {
+      height: 500px;
+      width: 800px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- D3 -->
+  <script src="//d3js.org/d3.v3.min.js"></script>
+  <script src="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.js"></script>
+  <script src="js/leaflet_canvas_layer.js"></script>
+  <script>
+    var source = null,
+            arrayBase = [],
+            width = 800,
+            height = 500,
+            zoom = 15,
+            scale = 0,
+            indicador = null,
+            projection,
+            objetoFiltradoInicial = {
+                "PROVINCIA":46,
+                "CC": "A-",
+                "INDICADOR":"ALTURA_MEDIA"
+                };
+   
+   var map = L.map('map').setView([39.451008,-0.3649525], 10);
+      L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery <a href="http://stamen.com">Stamen</a>'
+      }).addTo(map);
+    
+   d3.csv("data/Indicadores/parc_ind_46_AM.csv", function(error, source) {
+      if (error) throw error;  
+
+      var filtroPorIndicador = source.filter(function (d) {
+          return +d.PROVINCIA == objetoFiltradoInicial.PROVINCIA && d.CC == objetoFiltradoInicial.CC;
+      })
+      
+      indicador = objetoFiltradoInicial.INDICADOR.toUpperCase();
+
+      //arrayBase = filtroPorIndicador.map(mapeoArrayBase);
+      arrayBase = source.map(mapeoArrayBase);
+
+      console.log(arrayBase.length);
+
+      crearMapa();
+
+    });
+    
+    function crearMapa(){
+    
+      
+      var BigPointLayer = L.CanvasLayer.extend({
+        render: function() {
+          var canvas = this.getCanvas();
+          var ctx = canvas.getContext('2d');
+          // clear canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          // get center from the map (projected)
+          
+          ctx.fillStyle = 'red';
+          ctx.fill();
+          
+          
+
+          arrayBase.forEach(function (d) {
+            ctx.beginPath();
+              var point = map.latLngToContainerPoint(new L.LatLng(d.y,d.x));
+              ctx.fillRect(point.x, point.y, 1, 1);
+            ctx.closePath();
+          });
+          ctx.save();
+          
+          // 
+          //this.renderCircle(ctx, point, (1.0 + Math.sin(Date.now()*0.001))*300);
+          //this.renderCircle(ctx, point, 60);
+          this.redraw();
+        }
+      });
+      var layer = new BigPointLayer();
+      layer.addTo(map);
+    
+    }
+    
+    function mapeoArrayBase(obj){
+        
+        var p = { x : +obj.COORX, y : +obj.COORY };
+        //var p = projection([+obj.COORX, +obj.COORY]);
+        //if (p) p.x = Math.round(p[0]), p.y = Math.round(p[1]);
+        
+        return { x : p.x, y : p.y, valor : +obj[indicador] };
+      }
+  </script>
+</body>
+</html>
