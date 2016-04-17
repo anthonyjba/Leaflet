@@ -40,12 +40,12 @@
         indicador = null,
         objetoFiltradoInicial = {
                 "PROVINCIA":46,
-                "CC": "A-",
+                "CC": "AM",
                 "INDICADOR":"ALTURA_MEDIA"
                 };
                 
     var layer1 = { "VALOR": { "MIN": 100, "MAX": 250 }, "ID": "P_1", "COLOR": "#d53e4f" };
-    var layer2 = { "VALOR": { "MIN": 300, "MAX": 400 }, "ID": "P_1", "COLOR": "#c0c0c0" };
+    var layer2 = { "VALOR": { "MIN": 300, "MAX": 400 }, "ID": "P_2", "COLOR": "#c0c0c0" };
 
     //Canvas
     var arrayBase = [],
@@ -57,15 +57,112 @@
             y: height / 2
         };
     
+    var m0,
+      o0;
+      
+      function mercator(scale){
+          return d3.geo.mercator()
+                .scale(scale)
+                .center([-0.3649525,39.451008])
+                .translate([width / 2, height / 2]);          
+      }
+    
     //D3
-    var projection = d3.geo.mercator()
-    .scale(scale)
-    .center([-0.3649525,39.451008])
-    .translate([width / 2, height / 2]);
+    var projection = mercator(scale);
 
     var path = d3.geo.path()
         .projection(projection);
+        
+    var clip2 = d3.geo.clipExtent()
+     .extent([[-(width/2), -(height/2)], [width, height]]);
+	//.extent([[0,0], [width, height]]);
 
+var mercatorT =  d3.geo.mercator() 
+			     .translate([960 / 2, 960 / 2]) 
+			     .scale((960 - 1) / 2 / Math.PI);
+                 
+ var simplify2 = d3.geo.transform({
+   point: function(x, y, z) {
+     this.stream.point( x * scale , y *scale );
+   }
+ });
+
+ var pointpath = d3.geo.path()
+ 			  .projection( {stream: function(s) { return (simplify2.stream(clip2.stream(mercatorT.stream(s)))); }} )
+        
+    // Define Zoom Function Event Listener
+function zoomFunction() { 
+    
+      zoom = d3.event.scale;
+      projection.scale(getScale());
+      //projection.translate(d3.event.translate).scale(d3.event.scale);
+      //projection = mercator(scale);                           
+      //path = d3.geo.path().projection(projection);
+      
+      ctx.clearRect(0, 0, width, height);
+      
+      // Update sphere styles
+      ctx.beginPath();
+      path.context(ctx)(arrayBase);
+      ctx.fillStyle = "#000";
+      ctx.fill();
+      
+      ctx.stroke();
+}
+
+// Define Zoom Behavior
+var zoomD3 = d3.behavior.zoom()
+    .center([width / 2, height / 2])
+    .scale(1)
+    .scaleExtent([13, 19])
+    .on("zoom", zoomFunction);
+
+   /* var zoom = d3.behavior.zoom()
+      .center([width / 2, height / 2])
+      .on("zoomstart", function(){
+            m0 = [d3.event.sourceEvent.pageX, d3.event.sourceEvent.pageY];
+
+            var proj = projection.rotate();
+            o0 = [-proj[0],-proj[1]];
+                            
+            d3.event.sourceEvent.stopPropagation();
+            })
+      .on("zoom", function() {
+            if (m0) {
+                var constant = (scale < 4) ? 4 : scale * 2;
+                var m1 = [d3.event.sourceEvent.pageX, d3.event.sourceEvent.pageY],
+                    o1 = [o0[0] + (m0[0] - m1[0]) / constant, o0[1] + (m1[1] - m0[1]) / constant];
+            }
+
+            rotate = [-o1[0], -o1[1]];
+            scale = (d3.event.scale >= 1) ? d3.event.scale : 1;
+            projection = pickProjection(scale, rotate);
+            path = d3.geo.path().projection(projection);
+            
+            context.clearRect(0, 0, width, height);
+            
+            // Update sphere styles
+            context.beginPath();
+            path.context(context)(sphere);
+            context.fillStyle = "#000";
+            context.fill();
+
+            // Update graticule styles
+            context.beginPath();
+            path.context(context)(grid);
+            context.lineWidth = 0.5;
+            context.strokeStyle = "#ddd";
+            context.stroke();
+
+            // Update land styles
+            context.beginPath();
+            path.context(context)(land);
+            context.fillStyle = "#fff";
+            context.fill();
+            context.strokeStyle = "#000";
+            context.stroke();
+
+            });*/
 
     var startLoad = new Date();
     d3.csv("data/Indicadores/parc_ind_46_allrows.csv", function(error, source) {
@@ -79,24 +176,42 @@
       })
       
       indicador = objetoFiltradoInicial.INDICADOR.toUpperCase();
-      arrayBase = filtroPorIndicador.map(mapeoArrayBase);
+      //arrayBase = filtroPorIndicador.map(mapeoArrayBase);
+      samples = filtroPorIndicador.map(mapeoArrayBase);
 
       console.log("Time of load geojson: " + new Date().setTime(new Date().getTime() - startLoad.getTime()) + " ms ");      
       console.log(arrayBase.length);
+      
+      //function to create feature colelciton from features
+	   to_fc = function(feats) {return {type: "FeatureCollection", features: feats}};
+       
+       arrayBase = to_fc(samples);
       
       //Añadir Capa de Filtro al canvas
       drawBaseCanvas();  
       
       //Añadir nueva Capa Filtro
-      addLayerFiltro(layer1);
+      //addLayerFiltro(layer1);
       
       //Añadir nueva Capa Filtro
-      addLayerFiltro(layer2);
+      //addLayerFiltro(layer2);
       
     });
     
-    
     function mapeoArrayBase(obj){
+        return {
+                type: "Feature",
+                properties: {
+                valor: +obj[indicador]
+                },
+                geometry: {
+                type: "Point",
+                coordinates: [+obj.COORX, +obj.COORY]
+                }
+            };  
+    }
+    
+    function mapeoArrayBaseOld(obj){
         
         var p = projection([+obj.COORX, +obj.COORY]);
         if (p) p.x = Math.round(p[0]), p.y = Math.round(p[1]);
@@ -118,11 +233,22 @@
         .attr("id", "BASE")
 
         ctx = canvasBase.node().getContext("2d");
-        ctx.globalAlpha = .4;        
+        path.context(ctx);
+        
+        ctx.save();
+        ctx.globalAlpha = .4;
+        
+        ctx.beginPath();
+        
+        pointpath(arrayBase);
         ctx.fillStyle = '#000';
         ctx.fill();
+        //draw(ctx)
+        ctx.stroke();
         
-        draw(ctx)
+        ctx.restore();
+        
+        canvasBase.call(zoomD3);
     
         // Use a transition to fade-in the new canvas.
         // When this transition finishes, remove the old canvases.
@@ -134,23 +260,25 @@
     
     function draw(ctx){
       //ctx.save();
-      ctx.translate(translatePos.x, translatePos.y);
+      //ctx.translate(translatePos.x, translatePos.y);
       //ctx.scale(scale, scale);
     
-      ctx.beginPath();
+      
         
         arrayBase.forEach(function(d) {
-            ctx.fillRect(d.x, d.y, 1, 1);            
+            ctx.beginPath();
+            ctx.fillRect(d.x, d.y, 1, 1);
+            ctx.closePath();            
         });
 
-			 ctx.closePath();
+			 
       
     }
        
     function addLayerFiltro(obj){
       
       var filtroPorValor = arrayBase.filter(function(d){ 
-                            return +d.valor >= obj.VALOR.MIN && d.valor <= obj.VALOR.MAX;  
+                            return d.valor >= obj.VALOR.MIN && d.valor <= obj.VALOR.MAX;  
                           });
                           
       var canvasLayer = d3.select("#mapCanvas").insert("canvas")
