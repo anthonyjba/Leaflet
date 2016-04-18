@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  body, canvas {
+			background-color: 'rgba(255,255,255,0.1)';            
+		}
+        canvas {
+            position:absolute;
+            left:0px;
+            top:0px;
+            border: 1px solid black;
+        }
+
+  #minus, #plus
+    {
+        font-family: 'Ubuntu';
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+</style>
+</head>
+
+<body>
+  <img id="baseCanvas" />
+  <div id="mapCanvas"></div>
+  <div style="padding-top: 510px">
+  <span id="minus">-Zoom Out</span>&nbsp;&nbsp;<span id="plus">+Zoom In</span>
+  </div>
+
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+(function (){
+   
+    var width = 800,
+        height = 500,
+        zoom = 15,
+        indicador = null,
+        objetoFiltradoInicial = {
+                "PROVINCIA":46,
+                "CC": "A-",
+                "INDICADOR":"ALTURA_MEDIA"
+                };
+                
+    var layer1 = { "VALOR": { "MIN": 100, "MAX": 250 }, "ID": "P_1", "COLOR": "#d53e4f" };
+    var layer2 = { "VALOR": { "MIN": 300, "MAX": 400 }, "ID": "P_1", "COLOR": "#c0c0c0" };
+
+    //Canvas
+    var arrayBase = [],
+        canvasBase,
+        ctx,
+        scale = getScale(),
+        translatePos = {
+            x: width / 2,
+            y: height / 2
+        };
+    
+    //D3
+    var projection = d3.geo.mercator()
+    .scale(scale)
+    .center([-0.3649525,39.451008])
+    .translate([width / 2, height / 2]);
+
+    var path = d3.geo.path()
+        .projection(projection);
+
+
+    var startLoad = new Date();
+    d3.csv("data/Indicadores/parc_ind_46_allrows.csv", function(error, source) {
+      if (error) throw error;
+      
+      console.log("Time of load geojson: " + new Date().setTime(new Date().getTime() - startLoad.getTime()) + " ms ");
+      
+      /*Logica*/
+      var filtroPorIndicador = source.filter(function (d) {
+          return +d.PROVINCIA == objetoFiltradoInicial.PROVINCIA && d.CC == objetoFiltradoInicial.CC;
+      })
+      
+      indicador = objetoFiltradoInicial.INDICADOR.toUpperCase();
+      arrayBase = filtroPorIndicador.map(mapeoArrayBase);
+
+      console.log("Time of load geojson: " + new Date().setTime(new Date().getTime() - startLoad.getTime()) + " ms ");      
+      console.log(arrayBase.length);
+      
+      //Añadir Capa de Filtro al canvas
+      drawBaseCanvas();  
+      
+      //Añadir nueva Capa Filtro
+      addLayerFiltro(layer1);
+      
+      //Añadir nueva Capa Filtro
+      addLayerFiltro(layer2);
+      
+    });
+    
+    
+    function mapeoArrayBase(obj){
+        
+        var p = projection([+obj.COORX, +obj.COORY]);
+        if (p) p.x = Math.round(p[0]), p.y = Math.round(p[1]);
+        
+        return { x : p.x, y : p.y, valor : +obj[indicador] };
+      }
+      
+    function getScale(){
+      return Math.pow(2, parseInt(zoom));
+    }
+
+    function drawBaseCanvas(){
+        // Select old canvases to remove after fade.
+        //var canvas0 = d3.selectAll("canvas");
+      
+        canvasBase = d3.select("#mapCanvas").insert("canvas")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("id", "BASE")
+
+        ctx = canvasBase.node().getContext("2d");
+        ctx.globalAlpha = .4;        
+        ctx.fillStyle = '#000';
+        ctx.fill();
+        
+        draw(ctx)
+    
+        // Use a transition to fade-in the new canvas.
+        // When this transition finishes, remove the old canvases.
+        // canvasBase.transition()
+        //     .duration(350)
+        //     .style("opacity", 1)
+        //     .each("end", function() { canvas0.remove(); });  
+    }
+    
+    function draw(ctx){
+      //ctx.save();
+      ctx.translate(translatePos.x, translatePos.y);
+      //ctx.scale(scale, scale);
+    
+      ctx.beginPath();
+        
+        arrayBase.forEach(function(d) {
+            ctx.fillRect(d.x, d.y, 1, 1);            
+        });
+
+			 ctx.closePath();
+      
+    }
+       
+    function addLayerFiltro(obj){
+      
+      var filtroPorValor = arrayBase.filter(function(d){ 
+                            return +d.valor >= obj.VALOR.MIN && d.valor <= obj.VALOR.MAX;  
+                          });
+                          
+      var canvasLayer = d3.select("#mapCanvas").insert("canvas")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("id", obj.ID)
+
+        console.log(filtroPorValor.length);
+        
+         var canvas0 = d3.selectAll("canvas")
+         console.log(canvas0);
+        
+        var ctxLayer = canvasLayer.node().getContext("2d");
+        ctxLayer.globalAlpha = .4;        
+        ctxLayer.fillStyle = obj.COLOR;
+        ctxLayer.fill();
+        
+        ctxLayer.beginPath();
+        
+        filtroPorValor.forEach(function(d) {
+            ctxLayer.fillRect(d.x, d.y, 1, 1);            
+        });
+
+			 ctxLayer.closePath();
+        
+    }
+    
+    // add button event listeners
+    document.getElementById("plus").addEventListener("click", function(){
+        scale = getScale();
+        draw(scale, translatePos);
+    }, false);
+ 
+    document.getElementById("minus").addEventListener("click", function(){
+        scale = getScale();
+        draw(scale, translatePos);
+    }, false);
+
+})();  
+</script>
+</body>
+</html>

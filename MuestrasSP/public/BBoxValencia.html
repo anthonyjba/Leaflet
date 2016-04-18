@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<head>
+  <style>
+    canvas {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      border: 1px solid black;
+    }
+    
+    img {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+  <script src="//d3js.org/d3.v3.min.js"></script>
+</head>
+
+<body>
+  <!--<img src="data_Cartodb/NY1280-13.png" />-->
+
+  <script type="text/javascript">
+    $(document).ready(function(){      
+      
+    // parameters
+    var url = 'data/Indicadores/parce_ind_46_AM.csv',
+        width = 1280,
+        height = 1280,        
+        zoom = 1,
+        panX = 0,
+        panY = 0;
+   
+    var bounds = {}, 
+        geometries  = [],        
+        ctx,
+        startCoords = [0, 0],
+        last = [0,0],
+        drawing = false,
+        dragged = false,
+        focus,
+        map;
+        
+        
+        
+
+    var canvas = document.createElement('canvas');
+    canvas.width = width;
+	  canvas.height = height;
+
+	  ctx = canvas.getContext('2d');
+
+	  document.body.appendChild(canvas);
+    canvas.addEventListener('DOMMouseScroll',handleScroll,false);
+    canvas.addEventListener('mousewheel',handleScroll,false);
+    canvas.addEventListener('mousedown', handleMouseDown, false);
+    canvas.addEventListener('mousemove', handleMouseMove, false);
+    canvas.addEventListener('mouseup', handleMouseUp, false);
+
+    
+    d3.csv("data/Indicadores/subp_val.csv", function(error, source) {
+      if (error) throw error;  
+      
+      // Calculate the bounds of this tile
+      bounds = getBoundingBox(source);
+
+      drawPoints();
+      
+    }); 
+    
+    
+      function getScale() {
+            var xScale, yScale;
+            
+            // Determine how much to scale our coordinates by
+            xScale = width / Math.abs(bounds.xMax - bounds.xMin);
+            yScale = height / Math.abs(bounds.yMax - bounds.yMin);
+            return (xScale < yScale ? xScale : yScale) * (parseInt(zoom));
+          
+      }
+  
+      function getCenter(scale) {
+
+          // todo: translate center with focus point
+          var center = [
+              (width - (scale * (bounds.xMax - bounds.xMin))) / 2,
+              (height - (scale * (bounds.yMax - bounds.yMin))) / 2
+          ];
+
+          center[0] += panX;
+          center[1] += panY;
+
+          return center;
+      }
+        
+    
+
+    function drawPoints() {
+        var startDraw = new Date();
+        var point, latitude, longitude, scale;
+        
+        scale = getScale();
+        //console.log(scale);
+
+        // center image
+        var center = getCenter(scale);
+        //console.log(center);
+        
+        ctx.strokeStyle = '#003300';
+
+        // Loop over the features…
+        for (var i = 0, l = geometries.length; i < l; i++) {
+
+                longitude = geometries[i][0];
+                latitude = geometries[i][1];
+
+                point = {
+                    x: center[0] + (longitude - bounds.xMin) * scale,
+                    y: center[1] + (bounds.yMax - latitude) * scale
+                };
+                
+                
+                if((point.x > 0 && point.x < width) && (point.y > 0 && point.y < height)) {
+                  ctx.beginPath();
+                  ctx.fillRect(point.x, point.y, 1, 1);
+                  ctx.stroke();
+                  ctx.closePath();
+                }
+
+        }
+
+            // Fill the path we just finished drawing with color
+            //ctx.fill();
+        
+        console.log("Time of draw geometries: " + new Date().setTime(new Date().getTime() - startDraw.getTime()) + " ms ");
+    }
+    
+    function draw(polygons) {
+			
+			ctx.beginPath();
+
+			var data, i, l;
+
+			data = polygons[0];
+			ctx.moveTo(data.x, data.y);
+
+			for (i = 1, l = polygons.length; i < l; i++) {
+				data = polygons[i];
+
+				ctx.lineTo(data.x, data.y);
+					
+			}
+
+			ctx.stroke();
+			ctx.closePath();
+			
+		}
+    
+    function mercator (longitude, latitude) {
+        var radius = 6378137;
+        var max = 85.0511287798;
+        var radians = Math.PI / 180;
+        var point = {};
+
+        point.x = radius * longitude * radians;
+        point.y = Math.max(Math.min(max, latitude), -max) * radians;
+        point.y = radius * Math.log(Math.tan((Math.PI / 4) + (point.y / 2)));
+
+        return point;
+    }
+    
+    function getBoundingBox (coords) {
+        var geom, coords, point, latitude, longitude;
+
+        // We want to use the “features” key of the FeatureCollection (see above)
+        //data = data.features;
+
+        // Loop through each “feature”
+        //for (var i = 0, max = data.length; i < max; i++) {
+            //geom = JSON.parse(data[i].features)
+
+            // Pull out the coordinates of this feature
+            //coords = geom.coordinates[0][0];
+
+            //points = [];
+            // For each individual coordinate in this feature's coordinates…
+            for (var j = 0, l= coords.length; j < l; j++) {
+
+                
+                longitude = +coords[j]['COORX'];
+                latitude = +coords[j]['COORY'];
+
+                // Update the bounds recursively by comparing the current
+                // xMin/xMax and yMin/yMax with the coordinate 
+                // we're currently checking
+                bounds.xMin = bounds.xMin < longitude ? bounds.xMin : longitude;
+                bounds.xMax = bounds.xMax > longitude ? bounds.xMax : longitude;
+                bounds.yMin = bounds.yMin < latitude ? bounds.yMin : latitude;
+                bounds.yMax = bounds.yMax > latitude ? bounds.yMax : latitude;
+                
+                point = [ longitude, latitude ];
+                //point = mercator(longitude, latitude)
+                
+                geometries.push(point);
+            }
+            
+            // if (points.length) {
+            //     geometries.push(points);
+            // }
+
+        //}
+
+        // Returns an object that contains the bounds of this GeoJSON
+        // data. The keys of this object describe a box formed by the
+        // northwest (xMin, yMin) and southeast (xMax, yMax) coordinates.
+        return bounds;
+    }
+    
+    //functions of Scroll
+    function handleScroll(ev){
+			ev.preventDefault();
+			ev.stopPropagation();
+
+			var delta = ev.wheelDelta ? ev.wheelDelta / 60 : ev.detail ? -ev.detail : 0;
+
+			if (delta){
+				focus = [ev.offsetX, ev.offsetY];
+
+				scaleTo(delta);
+			}
+		}
+
+		function scaleTo(scale) {			
+			zoom += scale;
+      console.log(zoom);
+			if (zoom < 0) zoom = 1;
+
+			if (!drawing){
+				ctx.clearRect(0, 0, width, height);
+			 drawPoints();
+			}
+		}
+
+		function handleMouseDown(ev) {
+			dragged = true;
+
+			startCoords = [
+				ev.offsetX - last[0],
+				ev.offsetY - last[1]
+			];
+		}
+
+		function handleMouseUp(ev) {
+			dragged = false;
+			
+			last = [
+				ev.offsetX - startCoords[0],
+				ev.offsetY - startCoords[1]
+			];
+		}
+		
+		function handleMouseMove(ev) {
+			if (!dragged) return;
+
+			panX = ev.offsetX - startCoords[0];
+			panY = ev.offsetY - startCoords[1];
+
+			if (!drawing) {
+				ctx.clearRect(0, 0, width, height);
+			 drawPoints();
+			}
+		}
+    
+    
+    //************************************************************************************
+    function Matrix() {
+        this.reset();
+    }
+    Matrix.prototype.reset = function() {
+        this.m = [1, 0, 0, 1, 0, 0];
+    return this;
+    };
+    Matrix.prototype.inverse = function() {
+        var inv = new Matrix();
+        inv.m = this.m.slice(0);
+        var d = 1 / (inv.m[0] * inv.m[3] - inv.m[1] * inv.m[2]),
+            m0 = inv.m[3] * d,
+            m1 = -inv.m[1] * d,
+            m2 = -inv.m[2] * d,
+            m3 = inv.m[0] * d,
+            m4 = d * (inv.m[2] * inv.m[5] - inv.m[3] * inv.m[4]),
+            m5 = d * (inv.m[1] * inv.m[4] - inv.m[0] * inv.m[5]);
+        inv.m[0] = m0;
+        inv.m[1] = m1;
+        inv.m[2] = m2;
+        inv.m[3] = m3;
+        inv.m[4] = m4;
+        inv.m[5] = m5;
+        return inv;
+    };
+    Matrix.prototype.transformPoint = function(px, py) {
+        var x = px, y = py;
+        px = x * this.m[0] + y * this.m[2] + this.m[4];
+        py = x * this.m[1] + y * this.m[3] + this.m[5];
+        return [px, py];
+    };
+
+        //empty maps
+        var em = function(viewportSize,options) {
+            if(!viewportSize) return;
+            this.vpSize = viewportSize; 
+            this.opt = options || {};
+            this.projExt = this.opt.projExtent || {
+            left: -20037508.342789244,
+            right: 20037508.342789244,
+            bottom: -20037508.342789244,
+            top: 20037508.342789244
+            };
+            this.tSize = this.opt.tileSize || 256;
+            this.maxRes = Math.min(
+            Math.abs(this.projExt.right - this.projExt.left)/this.tSize,
+            Math.abs(this.projExt.top - this.projExt.bottom)/this.tSize);
+            this.matrix = new Matrix();
+            //this.tileMatrix = new Matrix();
+            //if(this.opt.view && this.opt.callback)
+            //  this.setView(this.opt.view,this.opt.callback,this.opt.scope);
+            
+            console.log(this.maxRes);
+        };
+
+  
+  
+        em.prototype.getCenter = function() {
+            var ctrBasePx = this.matrix.inverse()
+                .transformPoint(this.vpSize.width/2,this.vpSize.height/2);
+            return [
+                this.projExt.left + ctrBasePx[0]*this.maxRes,
+                this.projExt.top - ctrBasePx[1] * this.maxRes ];
+            };
+        
+        em.prototype.getZoom = function() {
+        return Math.log(this._getWebScale()) / Math.log(2);
+        };
+        em.prototype.getNearestZoom = function() {
+        return Math.round(this.getZoom());
+        };
+        em.prototype._getWebScale = function() {
+        var m = this.matrix.m;
+        return Math.sqrt(m[0] * m[0] + m[1] * m[1])
+        };
+        em.prototype.getRotation = function() {
+        var m = this.matrix.m;
+        return Math.atan2(m[1],m[0]) * 180/Math.PI;
+        };
+        em.prototype.getView = function() {
+        return {
+            center: this.getCenter(),
+            zoom: this.getZoom(),
+            resolution: this.maxRes/this._getWebScale(),
+            rotation: this.getRotation()
+        };
+        };
+        em.prototype.getExtent = function() {
+        var inv = this.matrix.inverse();
+        return [
+            this._basePxToLongLat(inv.transformPoint(0,0)),
+            this._basePxToLongLat(inv.transformPoint(0,this.vpSize.height)),
+            this._basePxToLongLat(inv.transformPoint(
+            this.vpSize.width, 
+            this.vpSize.height)),
+            this._basePxToLongLat(inv.transformPoint(this.vpSize.width, 0))]
+        };
+        em.prototype._longLatToBasePx = function(longLat) {
+        return [
+            (longLat[0] - this.projExt.left)/this.maxRes,
+            (this.projExt.top - longLat[1])/this.maxRes];
+        };
+        em.prototype._basePxToLongLat = function(px) {
+        return [
+            this.projExt.left + px[0]*this.maxRes,
+            this.projExt.top - px[1]*this.maxRes];
+        }
+  
+});
+  </script>
+</body>
+
+</html>
