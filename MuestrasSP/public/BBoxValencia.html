@@ -14,27 +14,38 @@
       left: 0px;
       top: 0px;
     }
+    div{
+        position:absolute;
+        left:800px;
+        top:20px;
+    }
   </style>
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
   <script src="//d3js.org/d3.v3.min.js"></script>
 </head>
 
 <body>
+  <div>
+        <strong>Bounding Box:</strong><p id="bboxValue"></p>
+        <strong>Nº de SubParcelas: </strong><span id="total" />
+        <button id="addCultivo" >Add Cultivo AM</button>
+  </div>
+    
   <!--<img src="data_Cartodb/NY1280-13.png" />-->
 
   <script type="text/javascript">
     $(document).ready(function(){      
       
     // parameters
-    var url = 'data/Indicadores/parce_ind_46_AM.csv',
-        width = 1280,
-        height = 1280,        
+    var urlPobl = "data/Indicadores/subp_val.csv",
+        width = 768,
+        height = 768,        
         zoom = 1,
         panX = 0,
         panY = 0;
    
     var bounds = {}, 
-        geometries  = [],        
+        capas  = [],        
         ctx,
         startCoords = [0, 0],
         last = [0,0],
@@ -43,8 +54,12 @@
         focus,
         map;
         
+    var url_CC1 = 'data/Indicadores/parc_ind_46_AM.csv',
+        url_CC2 = 'data/Indicadores/parc_ind_46_AR.csv',
+        url_CC3 = 'data/Indicadores/parc_ind_46_A-.csv';
         
         
+    
 
     var canvas = document.createElement('canvas');
     canvas.width = width;
@@ -60,17 +75,118 @@
     canvas.addEventListener('mouseup', handleMouseUp, false);
 
     
-    d3.csv("data/Indicadores/subp_val.csv", function(error, source) {
+    // d3.csv(urlPobl, function(error, source) {
+    //   if (error) throw error;  
+      
+    //   // Calculate the bounds of this tile
+    //   bounds = getBoundingBox(source);
+      
+    //   d3.select("#total").text(geometries.length);   //2684625
+    //   d3.select("#bboxValue").text('sw: [ ' + bounds.xMin + ' , ' + bounds.yMin + ' ]  ne: [ ' + bounds.xMax + ' , ' + bounds.yMax + ' ]');
+
+    //   render();
+      
+    // });
+    
+    d3.csv(url_CC1, function(error, data) {
       if (error) throw error;  
       
+      var objeto ={
+                    "ID": 'ID_46_AM',
+                    "PROVINCIA": 46,
+                    "CC": 'AM',                              
+                    "COLOR": 'red',
+                    "FILTRO": null,
+                    "SOURCE": data                             
+                };
+                
+      var objeto1 ={
+                    "ID": 'ID_46_AM_ALTURA_MEDIA',
+                    "PROVINCIA": 46,
+                    "CC": 'AM',                              
+                    "COLOR": 'blue',
+                    "FILTRO": {
+                               "INDICADOR": 'ALTURA_MEDIA',
+                               "OPERADOR_LOGICO": 'AND',
+                               "CONDICIONES": [
+                                                {'OPERADOR': 'mayor_igual', 'VALOR': 500},
+                                                {'OPERADOR': 'menor_igual', 'VALOR': 900}
+                                  ]
+                              },                 
+                    "SOURCE": data                             
+                };
+      
       // Calculate the bounds of this tile
-      bounds = getBoundingBox(source);
+      bounds = { xMin : -1.523, yMin : 37.844, xMax : 0.514, yMax : 40.788 };
+      
+      capas.push({ id : objeto.ID, geom : objeto.SOURCE.map(mapeoCultivo), color : objeto.COLOR });
+      
+      d3.select("#total").text(data.length);
+      d3.select("#bboxValue").text('sw: [ ' + bounds.xMin + ' , ' + bounds.yMin + ' ]  ne: [ ' + bounds.xMax + ' , ' + bounds.yMax + ' ]');
 
-      drawPoints();
+      var filtroCapa = filtradoCapa(objeto1.SOURCE, objeto1.FILTRO);
+      
+      capas.push({ id : objeto1.ID, geom : filtroCapa.map(mapeoCultivo), color : objeto1.COLOR });
+
+      render();
       
     }); 
     
-    
+      function mapeoCultivo(d){
+          return { x : +d.COORX, y : +d.COORY };
+      }
+      
+      function filtradoCapa(source, filtro){
+          var arrResult = [];
+          
+          switch(filtro.OPERADOR_LOGICO){
+            case "AND" :
+                var rango = [filtro.CONDICIONES[0].VALOR, filtro.CONDICIONES[1].VALOR];
+                 
+                arrResult = (filtro.CONDICIONES[0].OPERADOR == 'mayor_igual')? 
+                              source.filter(filterRangoGE(filtro.INDICADOR, rango)) : 
+                              source.filter(filterRangoGT(filtro.INDICADOR, rango));                            
+                break;
+            case "OR" :
+                break;
+            case "=" :
+                break;
+          }
+          
+          return arrResult;
+      }
+      
+      /** Funciones de Filtrado **/  
+      function filterInclude(col,val) {
+        return function(element) {
+            return element[col].indexOf(val) === 0;
+        }  
+      }
+      
+      function filterGT(col,val) {
+        return function(element) {
+            return element[col] > val;
+        }  
+      }
+      
+      function filterLT(col,val) {
+        return function(element) {
+            return element[col] < val;
+        }  
+      }
+      function filterRangoGE(col,rango) {
+        return function(element) {
+            return element[col] >= rango[0] && element[col] <= rango[1];
+        }  
+      }
+      
+      function filterRangoGT(col,rango) {
+        return function(element) {
+            return element[col] > rango[0] && element[col] <= rango[1];
+        }  
+      }
+     /** Fin Funciones Filtrados */
+     
       function getScale() {
             var xScale, yScale;
             
@@ -97,9 +213,9 @@
         
     
 
-    function drawPoints() {
+    function render() {
         var startDraw = new Date();
-        var point, latitude, longitude, scale;
+        var scale;
         
         scale = getScale();
         //console.log(scale);
@@ -108,34 +224,42 @@
         var center = getCenter(scale);
         //console.log(center);
         
-        ctx.strokeStyle = '#003300';
-
-        // Loop over the features…
-        for (var i = 0, l = geometries.length; i < l; i++) {
-
-                longitude = geometries[i][0];
-                latitude = geometries[i][1];
-
-                point = {
-                    x: center[0] + (longitude - bounds.xMin) * scale,
-                    y: center[1] + (bounds.yMax - latitude) * scale
-                };
-                
-                
-                if((point.x > 0 && point.x < width) && (point.y > 0 && point.y < height)) {
-                  ctx.beginPath();
-                  ctx.fillRect(point.x, point.y, 1, 1);
-                  ctx.stroke();
-                  ctx.closePath();
-                }
-
+        for(r= 0, t = capas.length; r < t; r ++){
+          drawCapa(capas[r].geom, capas[r].color, center, scale);
         }
-
-            // Fill the path we just finished drawing with color
-            //ctx.fill();
+       // Fill the path we just finished drawing with color
+       //ctx.fill();
         
         console.log("Time of draw geometries: " + new Date().setTime(new Date().getTime() - startDraw.getTime()) + " ms ");
     }
+    
+    function drawCapa(capaData, color, center, scale){
+        var point, latitude, longitude;
+        
+        ctx.beginPath();
+        
+        if(color) { ctx.fillStyle = color; }
+        
+        // Loop over the points…
+        for (var i = 0, l = capaData.length; i < l; i++) {
+
+                longitude = capaData[i].x;
+                latitude = capaData[i].y;
+
+                point = {
+                    x:  Math.floor(center[0] + (longitude - bounds.xMin) * scale),
+                    y:  Math.floor(center[1] + (bounds.yMax - latitude) * scale)
+                };
+                
+                if((point.x >= 0 && point.x <= width) && (point.y >= 0 && point.y <= height)) {
+                  ctx.fillRect(point.x, point.y, 1, 1);
+                }
+        }
+        ctx.fill();
+        ctx.closePath();
+      
+    }
+    
     
     function draw(polygons) {
 			
@@ -239,7 +363,7 @@
 
 			if (!drawing){
 				ctx.clearRect(0, 0, width, height);
-			 drawPoints();
+			 render();
 			}
 		}
 
@@ -269,7 +393,7 @@
 
 			if (!drawing) {
 				ctx.clearRect(0, 0, width, height);
-			 drawPoints();
+			 render();
 			}
 		}
     
