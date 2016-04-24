@@ -21,12 +21,13 @@
 
 <body>
   <!--<img src="data_Cartodb/NY1280-13.png" />-->
-
+  <span id="total" />
   <script type="text/javascript">
     $(document).ready(function(){      
       
     // parameters
-    var url = 'data/Indicadores/parce_ind_46_AM.csv',
+    //url= "data/Indicadores/subp_val.csv"
+    var url = 'data/Indicadores/parc_ind_46_allrows.csv',
         width = 1280,
         height = 1280,        
         zoom = 1,
@@ -60,12 +61,13 @@
     canvas.addEventListener('mouseup', handleMouseUp, false);
 
     
-    d3.csv("data/Indicadores/subp_val.csv", function(error, source) {
+    d3.csv(url, function(error, source) {
       if (error) throw error;  
       
       // Calculate the bounds of this tile
       bounds = getBoundingBox(source);
 
+      d3.select("#total").text("Total Reg.:" + geometries.length);
       drawPoints();
       
     }); 
@@ -108,24 +110,36 @@
         var center = getCenter(scale);
         //console.log(center);
         
-        ctx.strokeStyle = '#003300';
+        
 
         // Loop over the features…
         for (var i = 0, l = geometries.length; i < l; i++) {
 
                 longitude = geometries[i][0];
                 latitude = geometries[i][1];
+                
+                
 
                 point = {
-                    x: center[0] + (longitude - bounds.xMin) * scale,
-                    y: center[1] + (bounds.yMax - latitude) * scale
+                    x:  Math.floor(center[0] + (longitude - bounds.xMin) * scale),
+                    y:  Math.floor(center[1] + (bounds.yMax - latitude) * scale)
                 };
                 
-                
+                //ctx.fillStyle = '#003300';
                 if((point.x > 0 && point.x < width) && (point.y > 0 && point.y < height)) {
                   ctx.beginPath();
-                  ctx.fillRect(point.x, point.y, 1, 1);
-                  ctx.stroke();
+                //   if(i < 11000)
+                //     
+                //   else
+                //     ctx.fillStyle = 'red';
+                  
+                  
+                //   if(zoom > 12) { }  
+                   ctx.fillRect(point.x, point.y, 1, 1);
+                   
+                //   ctx.arc
+                  
+                  //ctx.stroke();
                   ctx.closePath();
                 }
 
