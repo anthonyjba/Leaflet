@@ -32,21 +32,14 @@
   </div>
     
   <!--<img src="data_Cartodb/NY1280-13.png" />-->
-  <span id="total" />
+
   <script type="text/javascript">
     $(document).ready(function(){      
       
     // parameters
-<<<<<<< HEAD
-    //url= "data/Indicadores/subp_val.csv"
-    var url = 'data/Indicadores/parc_ind_46_allrows.csv',
-        width = 1280,
-        height = 1280,        
-=======
     var urlPobl = "data/Indicadores/subp_val.csv",
         width = 768,
         height = 768,        
->>>>>>> ff523257ae2a45148c684aad8e8cc4b7d50efc63
         zoom = 1,
         panX = 0,
         panY = 0;
@@ -82,9 +75,6 @@
     canvas.addEventListener('mouseup', handleMouseUp, false);
 
     
-<<<<<<< HEAD
-    d3.csv(url, function(error, source) {
-=======
     // d3.csv(urlPobl, function(error, source) {
     //   if (error) throw error;  
       
@@ -99,7 +89,6 @@
     // });
     
     d3.csv(url_CC1, function(error, data) {
->>>>>>> ff523257ae2a45148c684aad8e8cc4b7d50efc63
       if (error) throw error;  
       
       var objeto ={
@@ -139,12 +128,7 @@
       
       capas.push({ id : objeto1.ID, geom : filtroCapa.map(mapeoCultivo), color : objeto1.COLOR });
 
-<<<<<<< HEAD
-      d3.select("#total").text("Total Reg.:" + geometries.length);
-      drawPoints();
-=======
       render();
->>>>>>> ff523257ae2a45148c684aad8e8cc4b7d50efc63
       
     }); 
     
@@ -240,17 +224,6 @@
         var center = getCenter(scale);
         //console.log(center);
         
-<<<<<<< HEAD
-        
-
-        // Loop over the features…
-        for (var i = 0, l = geometries.length; i < l; i++) {
-
-                longitude = geometries[i][0];
-                latitude = geometries[i][1];
-                
-                
-=======
         for(r= 0, t = capas.length; r < t; r ++){
           drawCapa(capas[r].geom, capas[r].color, center, scale);
         }
@@ -272,34 +245,14 @@
 
                 longitude = capaData[i].x;
                 latitude = capaData[i].y;
->>>>>>> ff523257ae2a45148c684aad8e8cc4b7d50efc63
 
                 point = {
                     x:  Math.floor(center[0] + (longitude - bounds.xMin) * scale),
                     y:  Math.floor(center[1] + (bounds.yMax - latitude) * scale)
                 };
                 
-<<<<<<< HEAD
-                //ctx.fillStyle = '#003300';
-                if((point.x > 0 && point.x < width) && (point.y > 0 && point.y < height)) {
-                  ctx.beginPath();
-                //   if(i < 11000)
-                //     
-                //   else
-                //     ctx.fillStyle = 'red';
-                  
-                  
-                //   if(zoom > 12) { }  
-                   ctx.fillRect(point.x, point.y, 1, 1);
-                   
-                //   ctx.arc
-                  
-                  //ctx.stroke();
-                  ctx.closePath();
-=======
                 if((point.x >= 0 && point.x <= width) && (point.y >= 0 && point.y <= height)) {
                   ctx.fillRect(point.x, point.y, 1, 1);
->>>>>>> ff523257ae2a45148c684aad8e8cc4b7d50efc63
                 }
         }
         ctx.fill();

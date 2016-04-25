@@ -8,8 +8,8 @@
         
         #map {
             position: absolute;
-            height:500;
-            width: 800;
+            height:500px;
+            width: 800px;
             background-color: #333;
         }
     </style>
@@ -25,7 +25,7 @@
 
     <script>
 
-        var leafletMap = L.map('map').setView([-0.38, 39.38], 10);
+        var leafletMap = L.map('map').setView([39.38, -0.38], 10);
         L.tileLayer("http://{s}.sm.mapstack.stamen.com/(toner-lite,$fff[difference],$fff[@23],$fff[hsl-saturation@20])/{z}/{x}/{y}.png")
             .addTo(leafletMap);
             
@@ -42,28 +42,27 @@
             function drawingOnCanvas(canvasOverlay, params) {
                 console.time("draw");
                 
-                params.canvas.width = 800; 
-                params.canvas.height = 500;
-                
                 var ctx = params.canvas.getContext('2d');
                 ctx.clearRect(0, 0, params.canvas.width, params.canvas.height);
-                ctx.fillStyle = "rgba(255,116,0, 0.2)";
-                for (var i = 0; i < data.length; i++) {
+                ctx.beginPath();
+                ctx.fillStyle = "rgba(255,116,0, 0.5)";  //"rgba(255,116,0, 0.2)"
+                for (var i = 0, l = data.length; i <l; i++) {
                     var d = data[i];
-                    if (params.bounds.contains([d.x, d.y])) {
-                        dot = canvasOverlay._map.latLngToContainerPoint([d.x, d.y]);
-                        ctx.beginPath();
-                        ctx.arc(dot.x, dot.y, 3, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.closePath();
+                    if (params.bounds.contains([d[0], d[1]])) {
+                        dot = canvasOverlay._map.latLngToContainerPoint([d[0], d[1]]);
+                        ctx.fillRect(dot.x, dot.y, 1, 1);
+                        //ctx.arc(dot.x, dot.y, 3, 0, Math.PI * 2); //412 ms
+                        
                     }
                 }
+                ctx.fill();
+                ctx.closePath();
                 
                 console.timeEnd("draw");
             };
             
             function mapeoCultivo(d) {
-                return { x: +d.COORX, y: +d.COORY };
+                return  [+d.COORY, +d.COORX]; //{ lon: , y: +d.COORY };
             }
         
         
