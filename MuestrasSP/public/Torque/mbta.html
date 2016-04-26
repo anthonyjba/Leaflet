@@ -1,0 +1,119 @@
+  <!DOCTYPE html>
+  <html>
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <style>
+      #map, html, body {
+        width: 100%; height: 100%; padding: 0; margin: 0;
+      }
+
+      #torque-time {
+        position: absolute;
+        top: 20px;
+        left: 5%;
+        color: white;
+        font-size: 24px;
+        font-family: Georgia, serif;
+        background-color: black;
+      }
+    </style>
+    <body>
+      <div id="map"></div>
+      <div id="torque-time">Loading...</div>
+
+      <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+      <script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+      <script type="text/javascript" src="../js/leaflet.js"></script>
+      <script type="text/javascript" src="dist/underscore.js"></script>
+      <script type="text/javascript" src="dist/carto.js"></script>
+      <script type="text/javascript" src="dist/torque.js"></script>
+
+      <script>
+        var map = new L.Map('map', {
+          zoomControl: true,
+          center: [42.360799, -71.063723],
+          zoom: 12
+        });
+
+        L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+        }).addTo(map);
+        
+        var CARTOCSS = [
+          'Map {',
+              '-torque-aggregation-function: "count(vehicle)";',
+              '-torque-frame-count: 4096;',
+              '-torque-animation-duration: 30;',
+              '-torque-resolution: 1',
+              '}',
+          '#layer {',
+            '  marker-width: 3; ',
+            '  marker-fill: #bd0026; ',
+            '  [value > 2] { marker-fill: #fed976; }',
+            '  [value > 3] { marker-fill: #feb24c; }',
+            '  [value > 4] { marker-fill: #fd8d3c; }',
+            '  [value > 5] { marker-fill: #fc4e2a; }',
+            '  [value > 6] { marker-fill: #e31a1c; }',
+            '  [value > 7] { marker-fill: #bd0026; }',
+           '',
+          '}',
+          '',
+          '#layer [frame-offset = 1][frame-offset = 2][frame-offset = 3][frame-offset = 4][frame-offset = 5][frame-offset = 6] {  ',
+            '  marker-fill: #bd0026; ',
+            '  marker-width: 3;',
+            '  marker-fill-opacity: 0.4;',
+          '}',
+          '',
+            '#layer [frame-offset = 7][frame-offset = 8][frame-offset = 9][frame-offset = 10][frame-offset = 11][frame-offset = 12] { ',
+            '  marker-fill: #e31a1c; ',
+            '  marker-width: 3;',
+            '  marker-fill-opacity: 0.3;',
+          '}',
+          '',
+            '#layer [frame-offset = 13][frame-offset = 14][frame-offset = 15][frame-offset = 16][frame-offset = 17][frame-offset = 18] { ',
+            '  marker-fill: #fc4e2a; ',
+            '  marker-width: 4;',
+            '  marker-fill-opacity: 0.3;',
+          '}',
+          '',
+            '#layer [frame-offset = 19][frame-offset = 20][frame-offset = 21][frame-offset = 22][frame-offset = 23][frame-offset = 24] { ',
+            '  marker-fill: #fd8d3c; ',
+            '  marker-width: 4;',
+            '  marker-fill-opacity: 0.2;',
+          '}',
+          '',
+            '#layer [frame-offset = 25][frame-offset = 26][frame-offset = 27][frame-offset = 28][frame-offset = 29][frame-offset = 30] { ',
+            '  marker-fill: #feb24c; ',
+            '  marker-width: 5;',
+            '  marker-fill-opacity: 0.2;',
+          '}',
+          '#layer [frame-offset = 31][frame-offset = 32] {  ',
+            '  marker-fill: #fed976; ',
+            '  marker-width: 6;',
+            '  marker-fill-opacity: 0.1;',
+          '}'
+        ].join('\n');
+
+        var torqueLayer = new L.TorqueLayer({
+          provider: 'sql_api',
+          url: 'http://banderkat.net/api/v2/sql',
+          tiler_domain: 'banderkat.net',
+          tiler_port: '',
+          table: 'mbtarec',
+          column: 'recorded',
+          cartocss: CARTOCSS,
+          blendmode  : 'lighter'
+        });
+
+        // each time time changes, tick counter
+        torqueLayer.on('change:time', function(changes) {
+          var new_time = changes.time.toLocaleString();
+          if (new_time === 'Invalid Date') return;
+          $('#torque-time').text(new_time);
+        });
+
+        torqueLayer.addTo(map);
+        torqueLayer.play();
+      </script>
+    </body>
+  </html>
+
