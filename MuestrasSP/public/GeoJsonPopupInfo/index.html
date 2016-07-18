@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet GeoJSON Example</title>
+    <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://npmcdn.com/leaflet@0.7.7/dist/leaflet.css" />
+
+
+</head>
+<body>
+    <div id="map" style="width: 1024px; height: 800px"></div>
+    <script src="https://npmcdn.com/leaflet@0.7.7/dist/leaflet.js"></script>
+    <script src="http://rawgit.com/kartena/Proj4Leaflet/leaflet-proj-refactor/lib/proj4-compressed.js"></script>
+    <script src="http://rawgit.com/kartena/Proj4Leaflet/leaflet-proj-refactor/src/proj4leaflet.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script>
+        //LEAFLET
+
+        var map = L.map('map').setView([36.822195, -6.310333], 14);
+
+		//L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+        //    maxZoom: 18,
+        //    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+        //        '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+        //        'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+        //    id: 'examples.map-i86knfo3'
+        //}).addTo(map);
+
+        L.tileLayer("http://{s}.sm.mapstack.stamen.com/(toner-lite,$fff[difference],$fff[@23],$fff[hsl-saturation@20])/{z}/{x}/{y}.png")
+            .addTo(map);
+
+		//$.getJSON("./api/geometry", function(data) {
+		//    L.geoJson(data, {
+		//    }).addTo(map);
+        //});
+
+        function style(feature) {
+            return {
+                fillColor: '#800026',
+                weight: 2,
+                opacity: 1,
+                color: 'white',
+                dashArray: '3',
+                fillOpacity: 0.7
+            };
+        }
+
+        $.getJSON("http://10.57.224.242/Servicios/HelperMapa.svc/WpsMagramaPol?layer=IntParcelaMFE&Poligono=-703818.422229017%204417556.65406125,-703797.327469401%204417556.21035526,-703614.712466377%204417564.79205264,-703599.788243505%204417558.83054658,-703573.627308874%204417551.18588193,-703552.419637322%204417547.1908423,-703505.373116108%204417548.14606499,-703504.006673344%204417570.68473279,-703495.244403486%204417705.08698886,-703491.998773603%204417755.55364705,-703488.347557836%204417812.49032595,-703431.688571437%204417816.1201857,-703404.315297356%204417571.92267265,-703320.543398859%204417573.43328991,-703267.31449419%204417574.96519214,-703271.915221973%204417695.17737927,-703272.106138019%204417699.50771231,-703275.144191756%204417769.83331112,-703279.515806292%204417859.86638108,-703278.039949569%204417950.55007213,-703266.663479806%204418075.65617307,-703385.597126494%204418070.33639944,-703755.066516376%204418055.30263002,-703873.328299789%204418049.44443819,-703875.841400814%204418048.85077542,-703877.004299103%204418044.30770172,-703876.734218366%204418041.01553453,-703866.934746503%204418016.89518728,-703866.023924025%204418004.80946551,-703864.168401051%204417895.56528936,-703864.780845956%204417853.51072161,-703868.551890928%204417798.46999292,-703866.662943098%204417745.41383841,-703863.337034505%204417726.39061363,-703859.58592567%204417651.95855364,-703859.06299111%204417612.5682048,-703860.28415135%204417592.97124785,-703859.201999062%204417581.65840784,-703853.269886692%204417570.14632174,-703845.705072265%204417563.46474288,-703828.589556543%204417556.85265906,-703818.422229017%204417556.65406125&srid=3857&sridout=3857", function (data) {
+		    
+		    var features = JSON.parse(data);
+
+		    if (!features.hasOwnProperty('crs')) {
+		        features.crs = {
+		            type: "name",
+		            properties: {
+		                name: "urn:ogc:def:crs:EPSG::3857"
+		            }};
+		    }
+
+		    console.log(features);
+
+		    L.Proj.geoJson(features,
+                {
+                    style: style,
+                    onEachFeature:
+                        function (feature, layer) {
+                            var popupContent = "<p>Este es una geometría de Tipo: " +
+                                feature.geometry.type + " y con una Area de: " + feature.properties.area + " m2!</p>";
+                            layer.bindPopup(popupContent);
+                        }
+                }).addTo(map);
+		});
+
+    </script>
+</body>
+</html>

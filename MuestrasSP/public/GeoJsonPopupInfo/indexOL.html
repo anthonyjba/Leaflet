@@ -1,0 +1,244 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>OL - GeoJSON Example</title>
+    <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.16.0/ol.css" type="text/css">
+    
+    <style>
+        .ol-popup {
+            position: absolute;
+            background-color: white;
+            -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+            filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #cccccc;
+            bottom: 12px;
+            left: -50px;
+            min-width: 280px;
+        }
+
+        .ol-popup:after, .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .ol-popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
+
+        .ol-popup:before {
+            border-top-color: #cccccc;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+        }
+
+        .ol-popup-closer {
+            text-decoration: none;
+            position: absolute;
+            top: 2px;
+            right: 8px;
+        }
+
+            .ol-popup-closer:after {
+                content: "✖";
+            }
+    </style>
+</head>
+<body>
+    <div id="map" style="width: 1024px; height: 800px"></div>
+    <div id="popup" class="ol-popup">
+        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+        <div id="popup-content"></div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.16.0/ol.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    
+
+    <script>
+        /**
+        * Elements that make up the popup.
+        */
+        var container = document.getElementById('popup');
+        var content = document.getElementById('popup-content');
+        var closer = document.getElementById('popup-closer');
+
+        var image = new ol.style.Circle({
+            radius: 5,
+            fill: null,
+            stroke: new ol.style.Stroke({ color: 'red', width: 1 })
+        });
+
+        var styles = {
+            'Point': [new ol.style.Style({
+                image: image
+            })],
+            'LineString': [new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'green',
+                    width: 1
+                })
+            })],
+            'MultiLineString': [new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'green',
+                    width: 1
+                })
+            })],
+            'MultiPoint': [new ol.style.Style({
+                image: image
+            })],
+            'MultiPolygon': [new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'blue',
+                    width: 1
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 255, 0, 0.1)'
+                })
+            })],
+            'Polygon': [new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'blue',
+                    lineDash: [4],
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 255, 0.1)'
+                })
+            })],
+            'GeometryCollection': [new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'magenta',
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: 'magenta'
+                }),
+                image: new ol.style.Circle({
+                    radius: 10,
+                    fill: null,
+                    stroke: new ol.style.Stroke({
+                        color: 'magenta'
+                    })
+                })
+            })],
+            'Circle': [new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'red',
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(255,0,0,0.2)'
+                })
+            })]
+        };
+
+        var styleFunction = function (feature, resolution) {
+            return styles[feature.getGeometry().getType()];
+        };
+
+        var geoJSONFormat = new ol.format.GeoJSON();
+
+        var vectorSource = new ol.source.Vector({
+            loader: function (extent, resolution, projection) {
+                var url = 'http://10.57.224.242/Servicios/HelperMapa.svc/WpsMagramaPol?layer=IntParcelaMFE&Poligono=-703818.422229017%204417556.65406125,-703797.327469401%204417556.21035526,-703614.712466377%204417564.79205264,-703599.788243505%204417558.83054658,-703573.627308874%204417551.18588193,-703552.419637322%204417547.1908423,-703505.373116108%204417548.14606499,-703504.006673344%204417570.68473279,-703495.244403486%204417705.08698886,-703491.998773603%204417755.55364705,-703488.347557836%204417812.49032595,-703431.688571437%204417816.1201857,-703404.315297356%204417571.92267265,-703320.543398859%204417573.43328991,-703267.31449419%204417574.96519214,-703271.915221973%204417695.17737927,-703272.106138019%204417699.50771231,-703275.144191756%204417769.83331112,-703279.515806292%204417859.86638108,-703278.039949569%204417950.55007213,-703266.663479806%204418075.65617307,-703385.597126494%204418070.33639944,-703755.066516376%204418055.30263002,-703873.328299789%204418049.44443819,-703875.841400814%204418048.85077542,-703877.004299103%204418044.30770172,-703876.734218366%204418041.01553453,-703866.934746503%204418016.89518728,-703866.023924025%204418004.80946551,-703864.168401051%204417895.56528936,-703864.780845956%204417853.51072161,-703868.551890928%204417798.46999292,-703866.662943098%204417745.41383841,-703863.337034505%204417726.39061363,-703859.58592567%204417651.95855364,-703859.06299111%204417612.5682048,-703860.28415135%204417592.97124785,-703859.201999062%204417581.65840784,-703853.269886692%204417570.14632174,-703845.705072265%204417563.46474288,-703828.589556543%204417556.85265906,-703818.422229017%204417556.65406125&srid=3857&sridout=3857';
+                $.ajax({
+                    url: url,
+                    success: function (data) {
+                        var features = geoJSONFormat.readFeatures(data);
+                        vectorSource.addFeatures(features);
+                    }
+                });
+            },
+            strategy: ol.loadingstrategy.bbox
+        });
+
+
+        var vectorLayer = new ol.layer.Vector({
+            source: vectorSource,
+            style: styleFunction
+        });
+
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                  source: new ol.source.OSM()
+              }),
+              vectorLayer
+            ],
+            target: 'map',
+            controls: ol.control.defaults({
+                attributionOptions: /** @type {olx.control.AttributionOptions} */ ({
+                    collapsible: false
+                })
+            }),
+            view: new ol.View({
+                center: ol.proj.transform([-6.310333, 36.822195], 'EPSG:4326', 'EPSG:3857'),
+                zoom: 14
+            })
+        });
+
+        var popup = new ol.Overlay(/** @type {olx.OverlayOptions} */({
+            element: container,
+            autoPan: true,
+            autoPanAnimation: {
+                duration: 250
+            }
+        }));
+
+        map.addOverlay(popup);
+
+       /**
+       * Add a click handler to hide the popup.
+       * @return {boolean} Don't follow the href.
+       */
+        closer.onclick = function () {
+            popup.setPosition(undefined);
+            closer.blur();
+            return false;
+        };
+
+
+
+        var selectionInteraction = new ol.interaction.Select({
+            layers: [vectorLayer],
+            condition: ol.events.condition.click
+        });
+
+        map.addInteraction(selectionInteraction);
+
+        selectionInteraction.on('select', function (evt) {
+            if (evt.selected.length > 0) {
+
+                var feature = evt.selected[0].getProperties();
+                console.info(feature);
+
+                content.innerHTML = "<p>Este es una geometría de Tipo: " +
+                evt.selected[0].getGeometry().getType() + " y con una Area de: " + feature.area + " m2!</p>";
+
+                var coord = map.getCoordinateFromPixel([event.x, event.y]);
+                popup.setPosition(coord);
+
+            }
+            else {
+                popup.setPosition(undefined);
+            }
+        });
+
+    </script>
+</body>
+</html>
