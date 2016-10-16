@@ -75,3 +75,6 @@ http://charb.it/2015/09/08/yet-another-angular-es6-webpack-seed/
 
 # Functional Programming
 https://codek.tv/v/HvMemAgOw6I/scenic-city-summit-2016-jeremy-fairbank-functional-programming-basics-in-es6-javascript/
+
+ES2016+?
+https://hackernoon.com/how-it-feels-to-learn-javascript-in-2016-d3a717dd577f#.49p7zmpvo
