@@ -72,3 +72,6 @@ http://www.idealista.com/labs/blog/idealista/automatizando-pruebas-en-idealista-
 
 # Article (AngularJS, WebPack)
 http://charb.it/2015/09/08/yet-another-angular-es6-webpack-seed/
+
+# Functional Programming
+https://codek.tv/v/HvMemAgOw6I/scenic-city-summit-2016-jeremy-fairbank-functional-programming-basics-in-es6-javascript/
